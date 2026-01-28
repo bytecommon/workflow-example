@@ -186,26 +186,19 @@ export function TaskList({ currentUser }: TaskListProps) {
                 ) : (
                   pendingTasks.map((task) => (
                     <TableRow key={task.id} className="hover:bg-muted/50 cursor-pointer">
-                      <TableCell className="font-medium">{task.definitionName}</TableCell>
+                      <TableCell className="font-medium">{task.workflowName}</TableCell>
                       <TableCell>{task.nodeName}</TableCell>
-                      <TableCell className="font-mono text-sm">{task.instanceId}</TableCell>
+                      <TableCell className="font-mono text-sm">{task.instanceNo}</TableCell>
                       <TableCell>{formatDate(task.createTime)}</TableCell>
-                      <TableCell>
-                        {task.dueTime && (
-                          <div className="flex items-center">
-                            <Clock className="w-3 h-3 mr-1 text-orange-500" />
-                            {formatDate(task.dueTime)}
-                          </div>
-                        )}
-                      </TableCell>
+                      <TableCell>-</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(task.status)}>
                           {getStatusText(task.status)}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           onClick={() => handleTaskClick(task)}
                         >
                           处理
