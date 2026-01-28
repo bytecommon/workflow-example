@@ -12,8 +12,9 @@ export const apiService = {
     async getDefinitions(params?: {
       pageNum?: number
       pageSize?: number
-      name?: string
+      workflowName?: string
       status?: number
+      category?: string
     }) {
       if (useMock) {
         return mockApi.getWorkflowDefinitions()
