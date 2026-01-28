@@ -377,5 +377,31 @@ export const mockApi = {
       message: '创建成功',
       data: Math.floor(Math.random() * 1000) + 100
     }
+  },
+
+  // 获取流程实例详情
+  async getInstanceDetail(instanceId: string | number) {
+    await this.delay()
+    const instances = mockData.generateWorkflowInstances()
+    const instance = instances.find(inst =>
+      inst.id === instanceId || inst.instanceId === String(instanceId)
+    )
+    if (!instance) {
+      return {
+        code: 404,
+        message: '流程实例不存在',
+        data: null
+      }
+    }
+    return {
+      code: 200,
+      message: '成功',
+      data: {
+        instance,
+        tasks: mockData.generateWorkflowTasks().filter(task => task.instanceId === instance.instanceId),
+        history: mockData.generateWorkflowHistory().filter(h => h.instanceId === instance.instanceId),
+        variables: {}
+      }
+    }
   }
 }
