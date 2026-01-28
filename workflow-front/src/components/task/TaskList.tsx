@@ -49,13 +49,15 @@ export function TaskList({ currentUser }: TaskListProps) {
   }
 
   const filteredTasks = tasks.filter(task =>
-    task.definitionName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    task.workflowName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     task.nodeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    task.instanceId.toLowerCase().includes(searchTerm.toLowerCase())
+    task.instanceNo.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const pendingTasks = filteredTasks.filter(task => task.status === 10)
-  const completedTasks = filteredTasks.filter(task => task.status === 11)
+  const pendingTasks = filteredTasks.filter(task => task.status === 'PENDING')
+  const completedTasks = filteredTasks.filter(task =>
+    task.status === 'APPROVED' || task.status === 'REJECTED' || task.status === 'TRANSFERRED'
+  )
 
   const handleTaskClick = (task: WorkflowTask) => {
     setSelectedTask(task)
