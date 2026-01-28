@@ -203,12 +203,12 @@ export const ccApi = {
     userId: string
     pageNum?: number
     pageSize?: number
-  }) => 
+  }) =>
     api.get<ApiResponse<Page<WorkflowCcVO>>>('/workflow/cc/my', { params }),
-  
+
   // 标记为已读
-  markAsRead: (id: number) => 
-    api.post<ApiResponse<void>>(`/workflow/cc/${id}/read`),
+  markAsRead: (id: number) =>
+    api.post<ApiResponse<void>>(`/workflow/cc/${id}/read`, {}),
 }
 
 // 分页响应类型定义
