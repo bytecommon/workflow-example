@@ -349,6 +349,16 @@ export const mockApi = {
     }
   },
 
+  // 启动工作流
+  async startWorkflow(data: any) {
+    await this.delay()
+    return {
+      code: 200,
+      message: '启动成功',
+      data: Math.floor(Math.random() * 100000) + 1000
+    }
+  },
+
   // 获取流程实例详情
   async getInstanceDetail(instanceId: string | number) {
     await this.delay()
