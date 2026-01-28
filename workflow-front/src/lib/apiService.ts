@@ -355,8 +355,8 @@ export const apiService = {
           data: {
             totalInstances: myInstances.total || 0,
             pendingTasks: pendingTasks.total || 0,
-            completedInstances: myInstances.records?.filter((instance: any) => instance.status === 2).length || 0,
-            runningInstances: myInstances.records?.filter((instance: any) => instance.status === 1).length || 0,
+            completedInstances: myInstances.records?.filter((instance: any) => instance.status === 'APPROVED').length || 0,
+            runningInstances: myInstances.records?.filter((instance: any) => instance.status === 'RUNNING').length || 0,
             myPendingTasks: pendingTasks.total || 0
           }
         }
