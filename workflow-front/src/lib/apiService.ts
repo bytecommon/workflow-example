@@ -180,9 +180,11 @@ export const apiService = {
     },
 
     async transferTask(taskId: number, data: {
-      userId: string
+      operatorId: string
+      operatorName: string
       targetUserId: string
-      comment?: string
+      targetUserName: string
+      reason?: string
     }) {
       if (useMock) {
         return mockApi.transferTask(taskId, data)
