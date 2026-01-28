@@ -211,8 +211,7 @@ export const apiService = {
       userId: string
       pageNum?: number
       pageSize?: number
-      definitionName?: string
-      status?: number
+      status?: string
     }) {
       if (useMock) {
         return mockApi.getMyInstances()
