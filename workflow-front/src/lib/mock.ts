@@ -209,30 +209,79 @@ export const mockApi = {
   // 获取流程定义列表
   async getWorkflowDefinitions() {
     await this.delay()
+    const records = mockData.generateWorkflowDefinitions()
     return {
       code: 200,
       message: '成功',
-      data: mockData.generateWorkflowDefinitions()
+      data: {
+        records,
+        total: records.length,
+        size: 10,
+        current: 1,
+        pages: 1
+      }
+    }
+  },
+
+  // 获取流程定义详情
+  async getWorkflowDetail(id: number) {
+    await this.delay()
+    const definitions = mockData.generateWorkflowDefinitions()
+    const definition = definitions.find(d => d.id === id)
+    if (!definition) {
+      return {
+        code: 404,
+        message: '流程定义不存在',
+        data: null
+      }
+    }
+    return {
+      code: 200,
+      message: '成功',
+      data: {
+        id: definition.id,
+        name: definition.workflowName,
+        key: definition.workflowKey,
+        version: definition.version,
+        description: definition.workflowDesc,
+        status: definition.status,
+        createTime: definition.createTime,
+        updateTime: definition.updateTime
+      }
     }
   },
 
   // 获取待办任务列表
   async getPendingTasks() {
     await this.delay()
+    const records = mockData.generateWorkflowTasks()
     return {
       code: 200,
       message: '成功',
-      data: mockData.generateWorkflowTasks()
+      data: {
+        records,
+        total: records.length,
+        size: 10,
+        current: 1,
+        pages: 1
+      }
     }
   },
 
   // 获取我发起的流程实例
   async getMyInstances() {
     await this.delay()
+    const records = mockData.generateWorkflowInstances()
     return {
       code: 200,
       message: '成功',
-      data: mockData.generateWorkflowInstances()
+      data: {
+        records,
+        total: records.length,
+        size: 10,
+        current: 1,
+        pages: 1
+      }
     }
   },
 
