@@ -308,6 +308,31 @@ export const apiService = {
           data: false
         }
       }
+    },
+
+    async getInstanceHistory(instanceId: number) {
+      if (useMock) {
+        return {
+          code: 200,
+          message: '成功',
+          data: mockData.generateWorkflowHistory()
+        }
+      }
+      try {
+        const response = await instanceApi.getInstanceHistory(instanceId)
+        return {
+          code: 200,
+          message: '成功',
+          data: response.data.data
+        }
+      } catch (error) {
+        console.error('获取流程历史失败:', error)
+        return {
+          code: 500,
+          message: '获取流程历史失败',
+          data: []
+        }
+      }
     }
   },
 
