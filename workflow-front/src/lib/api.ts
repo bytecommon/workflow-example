@@ -134,31 +134,34 @@ export const instanceApi = {
     userId: string
     pageNum?: number
     pageSize?: number
-    definitionName?: string
-    status?: number
-  }) => 
+    status?: string  // RUNNING, APPROVED, REJECTED, CANCELED, TERMINATED
+  }) =>
     api.get<ApiResponse<Page<WorkflowInstance>>>('/workflow/instance/my', { params }),
-  
+
   // 获取流程实例详情
-  getInstanceDetail: (instanceId: number) => 
+  getInstanceDetail: (instanceId: number) =>
     api.get<ApiResponse<InstanceDetailVO>>(`/workflow/instance/${instanceId}`),
-  
+
   // 启动流程实例
   startInstance: (data: {
-    definitionId: number
-    starterUserId: string
-    variables?: Record<string, any>
-  }) => 
+    workflowId: number
+    startUserId: string
+    startUserName: string
+    title: string
+    formData?: string
+    businessKey?: string
+    priority?: number
+  }) =>
     api.post<ApiResponse<number>>('/workflow/instance/start', data),
-  
+
   // 撤销流程
-  cancelInstance: (instanceId: number, reason: string) => 
-    api.post<ApiResponse<void>>(`/workflow/instance/${instanceId}/cancel`, null, { 
-      params: { reason } 
+  cancelInstance: (instanceId: number, reason: string) =>
+    api.post<ApiResponse<void>>(`/workflow/instance/${instanceId}/cancel`, null, {
+      params: { reason }
     }),
-  
+
   // 获取流程审批历史
-  getInstanceHistory: (instanceId: number) => 
+  getInstanceHistory: (instanceId: number) =>
     api.get<ApiResponse<WorkflowHistory[]>>(`/workflow/instance/${instanceId}/history`),
 }
 
