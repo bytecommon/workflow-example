@@ -21,55 +21,49 @@ export interface WorkflowDefinition {
 
 export interface WorkflowInstance {
   id: number
-  instanceId: string
-  definitionId: number
-  definitionName: string
-  currentTaskId: number
-  status: number
-  statusText: string
+  instanceNo: string
+  workflowName: string
+  status: string  // RUNNING, APPROVED, REJECTED, CANCELED, TERMINATED
+  title: string
   startTime: string
   endTime?: string
-  starterUserId: string
-  starterUserName: string
+  priority: number  // 0-普通, 1-紧急, 2-特急
 }
 
 export interface WorkflowTask {
   id: number
-  taskId: string
-  instanceId: string
-  definitionId: number
-  definitionName: string
-  nodeId: string
+  instanceId: number
+  instanceNo: string
+  workflowName: string
   nodeName: string
-  assigneeId: string
-  assigneeName: string
-  status: number
-  statusText: string
+  status: string  // PENDING, APPROVED, REJECTED, TRANSFERRED, CANCELED
+  title: string
+  startUserName: string
   createTime: string
-  dueTime?: string
-  claimTime?: string
-  finishTime?: string
+  priority: number  // 0-普通, 1-紧急, 2-特急
 }
 
 export interface WorkflowHistory {
   id: number
-  instanceId: string
-  taskId: string
-  nodeId: string
   nodeName: string
-  action: string
-  actionText: string
-  operatorId: string
+  action: string  // START, APPROVE, REJECT, TRANSFER, CANCEL
   operatorName: string
   comment?: string
-  createTime: string
+  operateTime: string
+  duration?: number  // 毫秒
 }
 
 export interface InstanceDetailVO {
-  instance: WorkflowInstance
-  tasks: WorkflowTask[]
-  history: WorkflowHistory[]
-  variables: Record<string, any>
+  id: number
+  instanceNo: string
+  workflowName: string
+  status: string  // RUNNING, APPROVED, REJECTED, CANCELED, TERMINATED
+  title: string
+  formData?: string  // JSON 格式
+  startUserId: string
+  startUserName: string
+  startTime: string
+  endTime?: string
 }
 
 export interface ApiResponse<T> {
@@ -126,10 +120,10 @@ export const workflowApi = {
   
   // 保存工作流配置
   saveConfig: (id: number, config: {
-    // 配置参数根据实际需要定义
-    formSchema?: any
-    approvalRules?: any[]
-  }) => 
+    nodes: WorkflowNode[]
+    edges: WorkflowEdge[]
+    approvers: WorkflowApprover[]
+  }) =>
     api.post<ApiResponse<void>>(`/workflow/definition/${id}/config`, config),
 }
 
@@ -140,31 +134,34 @@ export const instanceApi = {
     userId: string
     pageNum?: number
     pageSize?: number
-    definitionName?: string
-    status?: number
-  }) => 
+    status?: string  // RUNNING, APPROVED, REJECTED, CANCELED, TERMINATED
+  }) =>
     api.get<ApiResponse<Page<WorkflowInstance>>>('/workflow/instance/my', { params }),
-  
+
   // 获取流程实例详情
-  getInstanceDetail: (instanceId: number) => 
+  getInstanceDetail: (instanceId: number) =>
     api.get<ApiResponse<InstanceDetailVO>>(`/workflow/instance/${instanceId}`),
-  
+
   // 启动流程实例
   startInstance: (data: {
-    definitionId: number
-    starterUserId: string
-    variables?: Record<string, any>
-  }) => 
+    workflowId: number
+    startUserId: string
+    startUserName: string
+    title: string
+    formData?: string
+    businessKey?: string
+    priority?: number
+  }) =>
     api.post<ApiResponse<number>>('/workflow/instance/start', data),
-  
+
   // 撤销流程
-  cancelInstance: (instanceId: number, reason: string) => 
-    api.post<ApiResponse<void>>(`/workflow/instance/${instanceId}/cancel`, null, { 
-      params: { reason } 
+  cancelInstance: (instanceId: number, reason: string) =>
+    api.post<ApiResponse<void>>(`/workflow/instance/${instanceId}/cancel`, null, {
+      params: { reason }
     }),
-  
+
   // 获取流程审批历史
-  getInstanceHistory: (instanceId: number) => 
+  getInstanceHistory: (instanceId: number) =>
     api.get<ApiResponse<WorkflowHistory[]>>(`/workflow/instance/${instanceId}/history`),
 }
 
@@ -175,25 +172,27 @@ export const taskApi = {
     userId: string
     pageNum?: number
     pageSize?: number
-    definitionName?: string
-    nodeName?: string
-  }) => 
+  }) =>
     api.get<ApiResponse<Page<WorkflowTask>>>('/workflow/task/pending', { params }),
-  
+
   // 审批任务
   approveTask: (taskId: number, data: {
-    userId: string
+    approved: boolean
+    operatorId: string
+    operatorName: string
     comment?: string
-    action: string
-  }) => 
+    attachments?: string
+  }) =>
     api.post<ApiResponse<void>>(`/workflow/task/${taskId}/approve`, data),
-  
+
   // 转交任务
   transferTask: (taskId: number, data: {
-    userId: string
+    operatorId: string
+    operatorName: string
     targetUserId: string
-    comment?: string
-  }) => 
+    targetUserName: string
+    reason?: string
+  }) =>
     api.post<ApiResponse<void>>(`/workflow/task/${taskId}/transfer`, data),
 }
 
@@ -204,12 +203,12 @@ export const ccApi = {
     userId: string
     pageNum?: number
     pageSize?: number
-  }) => 
+  }) =>
     api.get<ApiResponse<Page<WorkflowCcVO>>>('/workflow/cc/my', { params }),
-  
+
   // 标记为已读
-  markAsRead: (id: number) => 
-    api.post<ApiResponse<void>>(`/workflow/cc/${id}/read`),
+  markAsRead: (id: number) =>
+    api.post<ApiResponse<void>>(`/workflow/cc/${id}/read`, {}),
 }
 
 // 分页响应类型定义
@@ -224,24 +223,61 @@ export interface Page<T> {
 // 扩展接口定义以匹配后台VO结构
 export interface WorkflowDetailVO {
   id: number
-  name: string
-  key: string
-  version: number
-  description?: string
-  status: number
-  createTime: string
-  updateTime: string
-  // 可以添加更多字段
+  workflowKey: string
+  workflowName: string
+  workflowDesc?: string
+  category?: string
+  formId?: number
+  status: number  // 0-停用, 1-启用
+  nodes: WorkflowNode[]
+  edges: WorkflowEdge[]
+  approvers: WorkflowApprover[]
+}
+
+export interface WorkflowNode {
+  id: number
+  workflowId: number
+  nodeKey: string
+  nodeName: string
+  nodeType: string  // START, APPROVE, CC, CONDITION, END
+  positionX: number
+  positionY: number
+  config?: string
+  createTime?: string
+  updateTime?: string
+}
+
+export interface WorkflowEdge {
+  id: number
+  workflowId: number
+  sourceNodeId: number
+  targetNodeId: number
+  conditionExpr?: string
+  priority: number
+  createTime?: string
+}
+
+export interface WorkflowApprover {
+  id: number
+  nodeId: number
+  approverType: string
+  approverValue: string
+  approveMode?: string
+  nobodyHandler?: string
+  createTime?: string
 }
 
 export interface WorkflowCcVO {
   id: number
-  instanceId: string
-  definitionName: string
+  instanceId: number
+  instanceNo: string
+  workflowName: string
   nodeName: string
-  senderName: string
+  title: string
+  startUserName: string
+  status: number  // 0-未读, 1-已读
   createTime: string
-  read: boolean
+  readTime?: string
 }
 
 export default api

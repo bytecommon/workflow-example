@@ -1,5 +1,5 @@
 import { workflowApi, instanceApi, taskApi, ccApi, type Page } from './api'
-import { mockApi } from './mock'
+import { mockApi, mockData } from './mock'
 
 // 配置环境变量
 const isDevelopment = import.meta.env.DEV
@@ -12,8 +12,9 @@ export const apiService = {
     async getDefinitions(params?: {
       pageNum?: number
       pageSize?: number
-      name?: string
+      workflowName?: string
       status?: number
+      category?: string
     }) {
       if (useMock) {
         return mockApi.getWorkflowDefinitions()
@@ -37,7 +38,7 @@ export const apiService = {
 
     async getWorkflowDetail(id: number) {
       if (useMock) {
-        return mockApi.getWorkflowDefinitions()
+        return mockApi.getWorkflowDetail(id)
       }
       try {
         const response = await workflowApi.getWorkflowDetail(id)
@@ -121,6 +122,35 @@ export const apiService = {
           data: false
         }
       }
+    },
+
+    async startInstance(data: {
+      workflowId: number
+      startUserId: string
+      startUserName: string
+      title: string
+      formData?: string
+      businessKey?: string
+      priority?: number
+    }) {
+      if (useMock) {
+        return mockApi.startWorkflow(data)
+      }
+      try {
+        const response = await instanceApi.startInstance(data)
+        return {
+          code: 200,
+          message: '启动成功',
+          data: response.data.data
+        }
+      } catch (error) {
+        console.error('启动流程实例失败:', error)
+        return {
+          code: 500,
+          message: '启动流程实例失败',
+          data: null
+        }
+      }
     }
   },
 
@@ -130,8 +160,6 @@ export const apiService = {
       userId: string
       pageNum?: number
       pageSize?: number
-      definitionName?: string
-      nodeName?: string
     }) {
       if (useMock) {
         return mockApi.getPendingTasks()
@@ -154,9 +182,11 @@ export const apiService = {
     },
 
     async approveTask(taskId: number, data: {
-      userId: string
+      approved: boolean
+      operatorId: string
+      operatorName: string
       comment?: string
-      action: string
+      attachments?: string
     }) {
       if (useMock) {
         return mockApi.approveTask(taskId, data)
@@ -179,9 +209,11 @@ export const apiService = {
     },
 
     async transferTask(taskId: number, data: {
-      userId: string
+      operatorId: string
+      operatorName: string
       targetUserId: string
-      comment?: string
+      targetUserName: string
+      reason?: string
     }) {
       if (useMock) {
         return mockApi.transferTask(taskId, data)
@@ -210,8 +242,7 @@ export const apiService = {
       userId: string
       pageNum?: number
       pageSize?: number
-      definitionName?: string
-      status?: number
+      status?: string
     }) {
       if (useMock) {
         return mockApi.getMyInstances()
@@ -235,28 +266,7 @@ export const apiService = {
 
     async getInstanceDetail(instanceId: number) {
       if (useMock) {
-        // 返回模拟的实例详情
-        return {
-          code: 200,
-          message: '成功',
-          data: {
-            instance: {
-              id: instanceId,
-              instanceId: `INST_${instanceId}`,
-              definitionId: 1,
-              definitionName: '请假申请流程',
-              currentTaskId: 1,
-              status: 1,
-              statusText: '运行中',
-              startTime: '2024-01-15T09:00:00',
-              starterUserId: 'user001',
-              starterUserName: '张三'
-            },
-            tasks: [],
-            history: [],
-            variables: {}
-          }
-        }
+        return mockApi.getInstanceDetail(instanceId)
       }
       try {
         const response = await instanceApi.getInstanceDetail(instanceId)
@@ -296,6 +306,31 @@ export const apiService = {
           code: 500,
           message: '终止流程实例失败',
           data: false
+        }
+      }
+    },
+
+    async getInstanceHistory(instanceId: number) {
+      if (useMock) {
+        return {
+          code: 200,
+          message: '成功',
+          data: mockData.generateWorkflowHistory()
+        }
+      }
+      try {
+        const response = await instanceApi.getInstanceHistory(instanceId)
+        return {
+          code: 200,
+          message: '成功',
+          data: response.data.data
+        }
+      } catch (error) {
+        console.error('获取流程历史失败:', error)
+        return {
+          code: 500,
+          message: '获取流程历史失败',
+          data: []
         }
       }
     }
@@ -374,8 +409,8 @@ export const apiService = {
           data: {
             totalInstances: myInstances.total || 0,
             pendingTasks: pendingTasks.total || 0,
-            completedInstances: myInstances.records?.filter((instance: any) => instance.status === 2).length || 0,
-            runningInstances: myInstances.records?.filter((instance: any) => instance.status === 1).length || 0,
+            completedInstances: myInstances.records?.filter((instance: any) => instance.status === 'APPROVED').length || 0,
+            runningInstances: myInstances.records?.filter((instance: any) => instance.status === 'RUNNING').length || 0,
             myPendingTasks: pendingTasks.total || 0
           }
         }

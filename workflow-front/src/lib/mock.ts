@@ -53,53 +53,41 @@ export const mockData = {
     return [
       {
         id: 1,
-        instanceId: 'INST_20240115001',
-        definitionId: 1,
-        definitionName: '请假申请流程',
-        currentTaskId: 1,
-        status: 1,
-        statusText: '运行中',
+        instanceNo: 'INST_20240115001',
+        workflowName: '请假申请流程',
+        status: 'RUNNING',
+        title: '李四的请假申请',
         startTime: '2024-01-15T09:00:00',
-        starterUserId: 'user002',
-        starterUserName: '李四'
+        priority: 0
       },
       {
         id: 2,
-        instanceId: 'INST_20240116001',
-        definitionId: 2,
-        definitionName: '报销申请流程',
-        currentTaskId: 2,
-        status: 1,
-        statusText: '运行中',
+        instanceNo: 'INST_20240116001',
+        workflowName: '报销申请流程',
+        status: 'RUNNING',
+        title: '王五的报销申请',
         startTime: '2024-01-16T13:00:00',
-        starterUserId: 'user003',
-        starterUserName: '王五'
+        priority: 1
       },
       {
         id: 3,
-        instanceId: 'INST_20240110001',
-        definitionId: 3,
-        definitionName: '采购申请流程',
-        currentTaskId: 0,
-        status: 2,
-        statusText: '已完成',
+        instanceNo: 'INST_20240110001',
+        workflowName: '采购申请流程',
+        status: 'APPROVED',
+        title: '赵六的采购申请',
         startTime: '2024-01-10T09:00:00',
         endTime: '2024-01-12T16:00:00',
-        starterUserId: 'user004',
-        starterUserName: '赵六'
+        priority: 0
       },
       {
         id: 4,
-        instanceId: 'INST_20240108001',
-        definitionId: 1,
-        definitionName: '请假申请流程',
-        currentTaskId: 0,
-        status: 3,
-        statusText: '已终止',
+        instanceNo: 'INST_20240108001',
+        workflowName: '请假申请流程',
+        status: 'TERMINATED',
+        title: '钱七的请假申请',
         startTime: '2024-01-08T10:00:00',
         endTime: '2024-01-09T11:00:00',
-        starterUserId: 'user005',
-        starterUserName: '钱七'
+        priority: 0
       }
     ]
   },
@@ -109,49 +97,39 @@ export const mockData = {
     return [
       {
         id: 1,
-        taskId: 'TASK_20240115001',
-        instanceId: 'INST_20240115001',
-        definitionId: 1,
-        definitionName: '请假申请流程',
-        nodeId: 'NODE_DEPT_MANAGER',
+        instanceId: 1,
+        instanceNo: 'INST_20240115001',
+        workflowName: '请假申请流程',
         nodeName: '部门经理审批',
-        assigneeId: 'user001',
-        assigneeName: '张三',
-        status: 10,
-        statusText: '待处理',
+        status: 'PENDING',
+        title: '李四的请假申请',
+        startUserName: '李四',
         createTime: '2024-01-15T10:00:00',
-        dueTime: '2024-01-18T10:00:00'
+        priority: 0
       },
       {
         id: 2,
-        taskId: 'TASK_20240116001',
-        instanceId: 'INST_20240116001',
-        definitionId: 2,
-        definitionName: '报销申请流程',
-        nodeId: 'NODE_FINANCE_REVIEW',
+        instanceId: 2,
+        instanceNo: 'INST_20240116001',
+        workflowName: '报销申请流程',
         nodeName: '财务审核',
-        assigneeId: 'user001',
-        assigneeName: '张三',
-        status: 10,
-        statusText: '待处理',
+        status: 'PENDING',
+        title: '王五的报销申请',
+        startUserName: '王五',
         createTime: '2024-01-16T14:30:00',
-        dueTime: '2024-01-19T14:30:00'
+        priority: 1
       },
       {
         id: 3,
-        taskId: 'TASK_20240110001',
-        instanceId: 'INST_20240110001',
-        definitionId: 3,
-        definitionName: '采购申请流程',
-        nodeId: 'NODE_PURCHASE_MANAGER',
+        instanceId: 3,
+        instanceNo: 'INST_20240110001',
+        workflowName: '采购申请流程',
         nodeName: '采购主管审批',
-        assigneeId: 'user001',
-        assigneeName: '张三',
-        status: 11,
-        statusText: '已处理',
+        status: 'APPROVED',
+        title: '赵六的采购申请',
+        startUserName: '赵六',
         createTime: '2024-01-10T09:00:00',
-        claimTime: '2024-01-10T10:00:00',
-        finishTime: '2024-01-10T11:00:00'
+        priority: 0
       }
     ]
   },
@@ -161,29 +139,21 @@ export const mockData = {
     return [
       {
         id: 1,
-        instanceId: 'INST_20240110001',
-        taskId: 'TASK_20240110001',
-        nodeId: 'NODE_START',
         nodeName: '开始节点',
-        action: 'start',
-        actionText: '发起流程',
-        operatorId: 'user004',
+        action: 'START',
         operatorName: '赵六',
         comment: '需要采购办公用品',
-        createTime: '2024-01-10T09:00:00'
+        operateTime: '2024-01-10T09:00:00',
+        duration: 0
       },
       {
         id: 2,
-        instanceId: 'INST_20240110001',
-        taskId: 'TASK_20240110001',
-        nodeId: 'NODE_PURCHASE_MANAGER',
         nodeName: '采购主管审批',
-        action: 'approve',
-        actionText: '审批通过',
-        operatorId: 'user001',
+        action: 'APPROVE',
         operatorName: '张三',
         comment: '同意采购申请',
-        createTime: '2024-01-10T11:00:00'
+        operateTime: '2024-01-10T11:00:00',
+        duration: 7200000
       }
     ]
   },
@@ -209,30 +179,79 @@ export const mockApi = {
   // 获取流程定义列表
   async getWorkflowDefinitions() {
     await this.delay()
+    const records = mockData.generateWorkflowDefinitions()
     return {
       code: 200,
       message: '成功',
-      data: mockData.generateWorkflowDefinitions()
+      data: {
+        records,
+        total: records.length,
+        size: 10,
+        current: 1,
+        pages: 1
+      }
+    }
+  },
+
+  // 获取流程定义详情
+  async getWorkflowDetail(id: number) {
+    await this.delay()
+    const definitions = mockData.generateWorkflowDefinitions()
+    const definition = definitions.find(d => d.id === id)
+    if (!definition) {
+      return {
+        code: 404,
+        message: '流程定义不存在',
+        data: null
+      }
+    }
+    return {
+      code: 200,
+      message: '成功',
+      data: {
+        id: definition.id,
+        name: definition.workflowName,
+        key: definition.workflowKey,
+        version: definition.version,
+        description: definition.workflowDesc,
+        status: definition.status,
+        createTime: definition.createTime,
+        updateTime: definition.updateTime
+      }
     }
   },
 
   // 获取待办任务列表
   async getPendingTasks() {
     await this.delay()
+    const records = mockData.generateWorkflowTasks()
     return {
       code: 200,
       message: '成功',
-      data: mockData.generateWorkflowTasks()
+      data: {
+        records,
+        total: records.length,
+        size: 10,
+        current: 1,
+        pages: 1
+      }
     }
   },
 
   // 获取我发起的流程实例
   async getMyInstances() {
     await this.delay()
+    const records = mockData.generateWorkflowInstances()
     return {
       code: 200,
       message: '成功',
-      data: mockData.generateWorkflowInstances()
+      data: {
+        records,
+        total: records.length,
+        size: 10,
+        current: 1,
+        pages: 1
+      }
     }
   },
 
@@ -327,6 +346,48 @@ export const mockApi = {
       code: 200,
       message: '创建成功',
       data: Math.floor(Math.random() * 1000) + 100
+    }
+  },
+
+  // 启动工作流
+  async startWorkflow(data: any) {
+    await this.delay()
+    return {
+      code: 200,
+      message: '启动成功',
+      data: Math.floor(Math.random() * 100000) + 1000
+    }
+  },
+
+  // 获取流程实例详情
+  async getInstanceDetail(instanceId: string | number) {
+    await this.delay()
+    const instances = mockData.generateWorkflowInstances()
+    const instance = instances.find(inst =>
+      inst.id === instanceId || inst.instanceNo === String(instanceId)
+    )
+    if (!instance) {
+      return {
+        code: 404,
+        message: '流程实例不存在',
+        data: null
+      }
+    }
+    return {
+      code: 200,
+      message: '成功',
+      data: {
+        id: instance.id,
+        instanceNo: instance.instanceNo,
+        workflowName: instance.workflowName,
+        status: instance.status,
+        title: instance.title,
+        formData: '{}',
+        startUserId: 'user001',
+        startUserName: '张三',
+        startTime: instance.startTime,
+        endTime: instance.endTime
+      }
     }
   }
 }

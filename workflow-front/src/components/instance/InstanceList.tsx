@@ -77,16 +77,16 @@ export function InstanceList({ currentUser }: InstanceListProps) {
   }
 
   const filteredInstances = instances.filter(instance => {
-    const matchesSearch = 
-      (instance.definitionName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (instance.instanceId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (instance.starterUserName || '').toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesStatus = statusFilter === 'all' || 
-      (statusFilter === 'running' && instance.status === 1) ||
-      (statusFilter === 'completed' && instance.status === 2) ||
-      (statusFilter === 'terminated' && instance.status === 3)
-    
+    const matchesSearch =
+      (instance.workflowName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (instance.instanceNo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (instance.title || '').toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'running' && instance.status === 'RUNNING') ||
+      (statusFilter === 'completed' && instance.status === 'APPROVED') ||
+      (statusFilter === 'terminated' && instance.status === 'TERMINATED')
+
     return matchesSearch && matchesStatus
   })
 
@@ -106,12 +106,14 @@ export function InstanceList({ currentUser }: InstanceListProps) {
     showConfirm(
       '终止流程实例',
       '确定要终止这个流程实例吗？',
-      () => {
+      async () => {
         try {
-          // 模拟终止操作
-          setInstances(instances.map(instance => 
-            instance.id === id ? { ...instance, status: 3, endTime: new Date().toISOString() } : instance
-          ))
+          // 调用后端终止API
+          const response = await apiService.instance.cancelInstance(id, '用户终止')
+          if (response.code === 200) {
+            // 重新加载列表
+            await loadInstances()
+          }
         } catch (error) {
           console.error('终止实例失败:', error)
         }
@@ -122,9 +124,9 @@ export function InstanceList({ currentUser }: InstanceListProps) {
 
   const statusFilters = [
     { value: 'all', label: '全部', count: instances.length },
-    { value: 'running', label: '运行中', count: instances.filter(i => i.status === 1).length },
-    { value: 'completed', label: '已完成', count: instances.filter(i => i.status === 2).length },
-    { value: 'terminated', label: '已终止', count: instances.filter(i => i.status === 3).length }
+    { value: 'running', label: '运行中', count: instances.filter(i => i.status === 'RUNNING').length },
+    { value: 'completed', label: '已完成', count: instances.filter(i => i.status === 'APPROVED').length },
+    { value: 'terminated', label: '已终止', count: instances.filter(i => i.status === 'TERMINATED').length }
   ]
 
   return (
@@ -199,9 +201,9 @@ export function InstanceList({ currentUser }: InstanceListProps) {
               ) : (
                 filteredInstances.map((instance) => (
                   <TableRow key={instance.id} className="hover:bg-muted/50">
-                    <TableCell className="font-mono text-sm">{instance.instanceId}</TableCell>
-                    <TableCell className="font-medium">{instance.definitionName}</TableCell>
-                    <TableCell>{instance.starterUserName}</TableCell>
+                    <TableCell className="font-mono text-sm">{instance.instanceNo}</TableCell>
+                    <TableCell className="font-medium">{instance.workflowName}</TableCell>
+                    <TableCell>{instance.title}</TableCell>
                     <TableCell>{formatDate(instance.startTime)}</TableCell>
                     <TableCell>
                       {instance.endTime ? formatDate(instance.endTime) : '-'}
@@ -213,16 +215,16 @@ export function InstanceList({ currentUser }: InstanceListProps) {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleInstanceClick(instance)}
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        {instance.status === 1 && (
-                          <Button 
-                            variant="outline" 
+                        {instance.status === 'RUNNING' && (
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => handleTerminate(instance.id)}
                             className="text-red-600 hover:text-red-700"
