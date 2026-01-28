@@ -32,20 +32,15 @@ export interface WorkflowInstance {
 
 export interface WorkflowTask {
   id: number
-  taskId: string
-  instanceId: string
-  definitionId: number
-  definitionName: string
-  nodeId: string
+  instanceId: number
+  instanceNo: string
+  workflowName: string
   nodeName: string
-  assigneeId: string
-  assigneeName: string
-  status: number
-  statusText: string
+  status: string  // PENDING, APPROVED, REJECTED, TRANSFERRED, CANCELED
+  title: string
+  startUserName: string
   createTime: string
-  dueTime?: string
-  claimTime?: string
-  finishTime?: string
+  priority: number  // 0-普通, 1-紧急, 2-特急
 }
 
 export interface WorkflowHistory {
