@@ -131,8 +131,6 @@ export const apiService = {
       userId: string
       pageNum?: number
       pageSize?: number
-      definitionName?: string
-      nodeName?: string
     }) {
       if (useMock) {
         return mockApi.getPendingTasks()
