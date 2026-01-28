@@ -21,16 +21,13 @@ export interface WorkflowDefinition {
 
 export interface WorkflowInstance {
   id: number
-  instanceId: string
-  definitionId: number
-  definitionName: string
-  currentTaskId: number
-  status: number
-  statusText: string
+  instanceNo: string
+  workflowName: string
+  status: string  // RUNNING, APPROVED, REJECTED, CANCELED, TERMINATED
+  title: string
   startTime: string
   endTime?: string
-  starterUserId: string
-  starterUserName: string
+  priority: number  // 0-普通, 1-紧急, 2-特急
 }
 
 export interface WorkflowTask {
