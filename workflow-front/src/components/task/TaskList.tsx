@@ -66,11 +66,17 @@ export function TaskList({ currentUser }: TaskListProps) {
 
   const handleApprove = async (taskId: number, comment: string) => {
     try {
-      // 模拟审批操作
-      setTasks(tasks.map(task => 
-        task.id === taskId ? { ...task, status: 11, finishTime: new Date().toISOString() } : task
-      ))
-      setShowDetailDialog(false)
+      // 调用后端审批API
+      const response = await apiService.task.approveTask(taskId, {
+        approved: true,
+        operatorId: currentUser?.id || 'user001',
+        operatorName: currentUser?.name || '当前用户',
+        comment
+      })
+      if (response.code === 200) {
+        await loadTasks()
+        setShowDetailDialog(false)
+      }
     } catch (error) {
       console.error('审批任务失败:', error)
     }
@@ -78,23 +84,36 @@ export function TaskList({ currentUser }: TaskListProps) {
 
   const handleReject = async (taskId: number, comment: string) => {
     try {
-      // 模拟驳回操作
-      setTasks(tasks.map(task => 
-        task.id === taskId ? { ...task, status: 11, finishTime: new Date().toISOString() } : task
-      ))
-      setShowDetailDialog(false)
+      // 调用后端驳回API
+      const response = await apiService.task.approveTask(taskId, {
+        approved: false,
+        operatorId: currentUser?.id || 'user001',
+        operatorName: currentUser?.name || '当前用户',
+        comment
+      })
+      if (response.code === 200) {
+        await loadTasks()
+        setShowDetailDialog(false)
+      }
     } catch (error) {
       console.error('驳回任务失败:', error)
     }
   }
 
-  const handleTransfer = async (taskId: number, targetUserId: string, comment: string) => {
+  const handleTransfer = async (taskId: number, targetUserId: string, targetUserName: string, reason: string) => {
     try {
-      // 模拟转办操作
-      setTasks(tasks.map(task => 
-        task.id === taskId ? { ...task, status: 12 } : task
-      ))
-      setShowDetailDialog(false)
+      // 调用后端转办API
+      const response = await apiService.task.transferTask(taskId, {
+        operatorId: currentUser?.id || 'user001',
+        operatorName: currentUser?.name || '当前用户',
+        targetUserId,
+        targetUserName,
+        reason
+      })
+      if (response.code === 200) {
+        await loadTasks()
+        setShowDetailDialog(false)
+      }
     } catch (error) {
       console.error('转办任务失败:', error)
     }
