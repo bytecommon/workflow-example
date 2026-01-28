@@ -139,29 +139,21 @@ export const mockData = {
     return [
       {
         id: 1,
-        instanceId: 'INST_20240110001',
-        taskId: 'TASK_20240110001',
-        nodeId: 'NODE_START',
         nodeName: '开始节点',
-        action: 'start',
-        actionText: '发起流程',
-        operatorId: 'user004',
+        action: 'START',
         operatorName: '赵六',
         comment: '需要采购办公用品',
-        createTime: '2024-01-10T09:00:00'
+        operateTime: '2024-01-10T09:00:00',
+        duration: 0
       },
       {
         id: 2,
-        instanceId: 'INST_20240110001',
-        taskId: 'TASK_20240110001',
-        nodeId: 'NODE_PURCHASE_MANAGER',
         nodeName: '采购主管审批',
-        action: 'approve',
-        actionText: '审批通过',
-        operatorId: 'user001',
+        action: 'APPROVE',
         operatorName: '张三',
         comment: '同意采购申请',
-        createTime: '2024-01-10T11:00:00'
+        operateTime: '2024-01-10T11:00:00',
+        duration: 7200000
       }
     ]
   },
