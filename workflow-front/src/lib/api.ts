@@ -218,14 +218,48 @@ export interface Page<T> {
 // 扩展接口定义以匹配后台VO结构
 export interface WorkflowDetailVO {
   id: number
-  name: string
-  key: string
-  version: number
-  description?: string
-  status: number
-  createTime: string
-  updateTime: string
-  // 可以添加更多字段
+  workflowKey: string
+  workflowName: string
+  workflowDesc?: string
+  category?: string
+  formId?: number
+  status: number  // 0-停用, 1-启用
+  nodes: WorkflowNode[]
+  edges: WorkflowEdge[]
+  approvers: WorkflowApprover[]
+}
+
+export interface WorkflowNode {
+  id: number
+  workflowId: number
+  nodeKey: string
+  nodeName: string
+  nodeType: string  // START, APPROVE, CC, CONDITION, END
+  positionX: number
+  positionY: number
+  config?: string
+  createTime?: string
+  updateTime?: string
+}
+
+export interface WorkflowEdge {
+  id: number
+  workflowId: number
+  sourceNodeId: number
+  targetNodeId: number
+  conditionExpr?: string
+  priority: number
+  createTime?: string
+}
+
+export interface WorkflowApprover {
+  id: number
+  nodeId: number
+  approverType: string
+  approverValue: string
+  approveMode?: string
+  nobodyHandler?: string
+  createTime?: string
 }
 
 export interface WorkflowCcVO {
