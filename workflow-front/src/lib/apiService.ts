@@ -122,6 +122,35 @@ export const apiService = {
           data: false
         }
       }
+    },
+
+    async startInstance(data: {
+      workflowId: number
+      startUserId: string
+      startUserName: string
+      title: string
+      formData?: string
+      businessKey?: string
+      priority?: number
+    }) {
+      if (useMock) {
+        return mockApi.startWorkflow(data)
+      }
+      try {
+        const response = await instanceApi.startInstance(data)
+        return {
+          code: 200,
+          message: '启动成功',
+          data: response.data.data
+        }
+      } catch (error) {
+        console.error('启动流程实例失败:', error)
+        return {
+          code: 500,
+          message: '启动流程实例失败',
+          data: null
+        }
+      }
     }
   },
 
