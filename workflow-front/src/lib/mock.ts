@@ -354,7 +354,7 @@ export const mockApi = {
     await this.delay()
     const instances = mockData.generateWorkflowInstances()
     const instance = instances.find(inst =>
-      inst.id === instanceId || inst.instanceId === String(instanceId)
+      inst.id === instanceId || inst.instanceNo === String(instanceId)
     )
     if (!instance) {
       return {
@@ -367,10 +367,16 @@ export const mockApi = {
       code: 200,
       message: '成功',
       data: {
-        instance,
-        tasks: mockData.generateWorkflowTasks().filter(task => task.instanceId === instance.instanceId),
-        history: mockData.generateWorkflowHistory().filter(h => h.instanceId === instance.instanceId),
-        variables: {}
+        id: instance.id,
+        instanceNo: instance.instanceNo,
+        workflowName: instance.workflowName,
+        status: instance.status,
+        title: instance.title,
+        formData: '{}',
+        startUserId: 'user001',
+        startUserName: '张三',
+        startTime: instance.startTime,
+        endTime: instance.endTime
       }
     }
   }
