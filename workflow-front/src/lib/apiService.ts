@@ -234,33 +234,12 @@ export const apiService = {
       }
     },
 
-    async getInstanceDetail(instanceId: number) {
+    async getInstanceDetail(instanceId: string | number) {
       if (useMock) {
-        // 返回模拟的实例详情
-        return {
-          code: 200,
-          message: '成功',
-          data: {
-            instance: {
-              id: instanceId,
-              instanceId: `INST_${instanceId}`,
-              definitionId: 1,
-              definitionName: '请假申请流程',
-              currentTaskId: 1,
-              status: 1,
-              statusText: '运行中',
-              startTime: '2024-01-15T09:00:00',
-              starterUserId: 'user001',
-              starterUserName: '张三'
-            },
-            tasks: [],
-            history: [],
-            variables: {}
-          }
-        }
+        return mockApi.getInstanceDetail(instanceId)
       }
       try {
-        const response = await instanceApi.getInstanceDetail(instanceId)
+        const response = await instanceApi.getInstanceDetail(instanceId as number)
         return {
           code: 200,
           message: '成功',
