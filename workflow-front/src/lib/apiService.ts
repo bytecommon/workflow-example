@@ -37,7 +37,7 @@ export const apiService = {
 
     async getWorkflowDetail(id: number) {
       if (useMock) {
-        return mockApi.getWorkflowDefinitions()
+        return mockApi.getWorkflowDetail(id)
       }
       try {
         const response = await workflowApi.getWorkflowDetail(id)
