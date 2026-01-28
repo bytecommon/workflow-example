@@ -233,12 +233,12 @@ export const apiService = {
       }
     },
 
-    async getInstanceDetail(instanceId: string | number) {
+    async getInstanceDetail(instanceId: number) {
       if (useMock) {
         return mockApi.getInstanceDetail(instanceId)
       }
       try {
-        const response = await instanceApi.getInstanceDetail(instanceId as number)
+        const response = await instanceApi.getInstanceDetail(instanceId)
         return {
           code: 200,
           message: '成功',
