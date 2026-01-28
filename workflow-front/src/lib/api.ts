@@ -264,12 +264,15 @@ export interface WorkflowApprover {
 
 export interface WorkflowCcVO {
   id: number
-  instanceId: string
-  definitionName: string
+  instanceId: number
+  instanceNo: string
+  workflowName: string
   nodeName: string
-  senderName: string
+  title: string
+  startUserName: string
+  status: number  // 0-未读, 1-已读
   createTime: string
-  read: boolean
+  readTime?: string
 }
 
 export default api
