@@ -45,16 +45,12 @@ export interface WorkflowTask {
 
 export interface WorkflowHistory {
   id: number
-  instanceId: string
-  taskId: string
-  nodeId: string
   nodeName: string
-  action: string
-  actionText: string
-  operatorId: string
+  action: string  // START, APPROVE, REJECT, TRANSFER, CANCEL
   operatorName: string
   comment?: string
-  createTime: string
+  operateTime: string
+  duration?: number  // 毫秒
 }
 
 export interface InstanceDetailVO {
