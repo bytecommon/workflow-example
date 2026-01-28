@@ -53,53 +53,41 @@ export const mockData = {
     return [
       {
         id: 1,
-        instanceId: 'INST_20240115001',
-        definitionId: 1,
-        definitionName: '请假申请流程',
-        currentTaskId: 1,
-        status: 1,
-        statusText: '运行中',
+        instanceNo: 'INST_20240115001',
+        workflowName: '请假申请流程',
+        status: 'RUNNING',
+        title: '李四的请假申请',
         startTime: '2024-01-15T09:00:00',
-        starterUserId: 'user002',
-        starterUserName: '李四'
+        priority: 0
       },
       {
         id: 2,
-        instanceId: 'INST_20240116001',
-        definitionId: 2,
-        definitionName: '报销申请流程',
-        currentTaskId: 2,
-        status: 1,
-        statusText: '运行中',
+        instanceNo: 'INST_20240116001',
+        workflowName: '报销申请流程',
+        status: 'RUNNING',
+        title: '王五的报销申请',
         startTime: '2024-01-16T13:00:00',
-        starterUserId: 'user003',
-        starterUserName: '王五'
+        priority: 1
       },
       {
         id: 3,
-        instanceId: 'INST_20240110001',
-        definitionId: 3,
-        definitionName: '采购申请流程',
-        currentTaskId: 0,
-        status: 2,
-        statusText: '已完成',
+        instanceNo: 'INST_20240110001',
+        workflowName: '采购申请流程',
+        status: 'APPROVED',
+        title: '赵六的采购申请',
         startTime: '2024-01-10T09:00:00',
         endTime: '2024-01-12T16:00:00',
-        starterUserId: 'user004',
-        starterUserName: '赵六'
+        priority: 0
       },
       {
         id: 4,
-        instanceId: 'INST_20240108001',
-        definitionId: 1,
-        definitionName: '请假申请流程',
-        currentTaskId: 0,
-        status: 3,
-        statusText: '已终止',
+        instanceNo: 'INST_20240108001',
+        workflowName: '请假申请流程',
+        status: 'TERMINATED',
+        title: '钱七的请假申请',
         startTime: '2024-01-08T10:00:00',
         endTime: '2024-01-09T11:00:00',
-        starterUserId: 'user005',
-        starterUserName: '钱七'
+        priority: 0
       }
     ]
   },
