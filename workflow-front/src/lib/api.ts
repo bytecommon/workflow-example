@@ -172,25 +172,27 @@ export const taskApi = {
     userId: string
     pageNum?: number
     pageSize?: number
-    definitionName?: string
-    nodeName?: string
-  }) => 
+  }) =>
     api.get<ApiResponse<Page<WorkflowTask>>>('/workflow/task/pending', { params }),
-  
+
   // 审批任务
   approveTask: (taskId: number, data: {
-    userId: string
+    approved: boolean
+    operatorId: string
+    operatorName: string
     comment?: string
-    action: string
-  }) => 
+    attachments?: string
+  }) =>
     api.post<ApiResponse<void>>(`/workflow/task/${taskId}/approve`, data),
-  
+
   // 转交任务
   transferTask: (taskId: number, data: {
-    userId: string
+    operatorId: string
+    operatorName: string
     targetUserId: string
-    comment?: string
-  }) => 
+    targetUserName: string
+    reason?: string
+  }) =>
     api.post<ApiResponse<void>>(`/workflow/task/${taskId}/transfer`, data),
 }
 
