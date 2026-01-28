@@ -54,10 +54,16 @@ export interface WorkflowHistory {
 }
 
 export interface InstanceDetailVO {
-  instance: WorkflowInstance
-  tasks: WorkflowTask[]
-  history: WorkflowHistory[]
-  variables: Record<string, any>
+  id: number
+  instanceNo: string
+  workflowName: string
+  status: string  // RUNNING, APPROVED, REJECTED, CANCELED, TERMINATED
+  title: string
+  formData?: string  // JSON 格式
+  startUserId: string
+  startUserName: string
+  startTime: string
+  endTime?: string
 }
 
 export interface ApiResponse<T> {
