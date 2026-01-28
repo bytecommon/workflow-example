@@ -237,10 +237,10 @@ export function TaskList({ currentUser }: TaskListProps) {
                 ) : (
                   completedTasks.map((task) => (
                     <TableRow key={task.id}>
-                      <TableCell className="font-medium">{task.definitionName}</TableCell>
+                      <TableCell className="font-medium">{task.workflowName}</TableCell>
                       <TableCell>{task.nodeName}</TableCell>
-                      <TableCell className="font-mono text-sm">{task.instanceId}</TableCell>
-                      <TableCell>{task.finishTime ? formatDate(task.finishTime) : '-'}</TableCell>
+                      <TableCell className="font-mono text-sm">{task.instanceNo}</TableCell>
+                      <TableCell>{formatDate(task.createTime)}</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(task.status)}>
                           {getStatusText(task.status)}
