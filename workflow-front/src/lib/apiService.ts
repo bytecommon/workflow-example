@@ -153,9 +153,11 @@ export const apiService = {
     },
 
     async approveTask(taskId: number, data: {
-      userId: string
+      approved: boolean
+      operatorId: string
+      operatorName: string
       comment?: string
-      action: string
+      attachments?: string
     }) {
       if (useMock) {
         return mockApi.approveTask(taskId, data)
