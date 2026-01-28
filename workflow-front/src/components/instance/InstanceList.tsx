@@ -201,9 +201,9 @@ export function InstanceList({ currentUser }: InstanceListProps) {
               ) : (
                 filteredInstances.map((instance) => (
                   <TableRow key={instance.id} className="hover:bg-muted/50">
-                    <TableCell className="font-mono text-sm">{instance.instanceId}</TableCell>
-                    <TableCell className="font-medium">{instance.definitionName}</TableCell>
-                    <TableCell>{instance.starterUserName}</TableCell>
+                    <TableCell className="font-mono text-sm">{instance.instanceNo}</TableCell>
+                    <TableCell className="font-medium">{instance.workflowName}</TableCell>
+                    <TableCell>{instance.title}</TableCell>
                     <TableCell>{formatDate(instance.startTime)}</TableCell>
                     <TableCell>
                       {instance.endTime ? formatDate(instance.endTime) : '-'}
@@ -215,16 +215,16 @@ export function InstanceList({ currentUser }: InstanceListProps) {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleInstanceClick(instance)}
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        {instance.status === 1 && (
-                          <Button 
-                            variant="outline" 
+                        {instance.status === 'RUNNING' && (
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => handleTerminate(instance.id)}
                             className="text-red-600 hover:text-red-700"
