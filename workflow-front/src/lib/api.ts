@@ -120,10 +120,10 @@ export const workflowApi = {
   
   // 保存工作流配置
   saveConfig: (id: number, config: {
-    // 配置参数根据实际需要定义
-    formSchema?: any
-    approvalRules?: any[]
-  }) => 
+    nodes: WorkflowNode[]
+    edges: WorkflowEdge[]
+    approvers: WorkflowApprover[]
+  }) =>
     api.post<ApiResponse<void>>(`/workflow/definition/${id}/config`, config),
 }
 
