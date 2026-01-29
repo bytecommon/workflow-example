@@ -59,8 +59,8 @@ export function Dashboard({ currentUser }: DashboardProps) {
       })
       
       let unreadCcCount = 0
-      if (ccResponse.code === 200 && ccResponse.data.records) {
-        unreadCcCount = ccResponse.data.records.filter((cc: WorkflowCcVO) => cc.status === 0).length
+      if (ccResponse.code === 200 && ccResponse.data && 'records' in ccResponse.data) {
+        unreadCcCount = (ccResponse.data.records as WorkflowCcVO[]).filter((cc: WorkflowCcVO) => cc.status === 0).length
       }
       
       if (response.code === 200) {
@@ -120,8 +120,8 @@ export function Dashboard({ currentUser }: DashboardProps) {
         pageNum: 1,
         pageSize: 5
       })
-      if (response.code === 200 && response.data.records) {
-        setRecentInstances(response.data.records)
+      if (response.code === 200 && response.data && 'records' in response.data) {
+        setRecentInstances(response.data.records as WorkflowInstance[])
       }
     } catch (error) {
       console.error('获取我发起的流程失败:', error)
@@ -159,8 +159,8 @@ export function Dashboard({ currentUser }: DashboardProps) {
         pageNum: 1,
         pageSize: 5
       })
-      if (response.code === 200 && response.data.records) {
-        setRecentCc(response.data.records)
+      if (response.code === 200 && response.data && 'records' in response.data) {
+        setRecentCc(response.data.records as WorkflowCcVO[])
       }
     } catch (error) {
       console.error('获取我的抄送失败:', error)

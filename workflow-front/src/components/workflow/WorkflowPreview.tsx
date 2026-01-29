@@ -76,9 +76,6 @@ export function WorkflowPreview({ open, onOpenChange, workflow }: WorkflowPrevie
     { id: 'e6', source: 'final_approve', target: 'end' }
   ])
 
-  // 模拟流程节点数据 - 优化布局
-  const workflowNodes: WorkflowNode[] = defaultWorkflowNodes
-
   const defaultWorkflowEdges: WorkflowEdge[] = [
     { id: 'e1', source: 'start', target: 'apply' },
     { id: 'e2', source: 'apply', target: 'dept_approve' },
@@ -120,7 +117,7 @@ export function WorkflowPreview({ open, onOpenChange, workflow }: WorkflowPrevie
           setNodes(newNodes)
         } else {
           // 使用默认节点数据
-          const defaultNodes = workflowNodes.map(node => ({
+          const defaultNodes = defaultWorkflowNodes.map((node: WorkflowNode) => ({
             ...node,
             status: 'pending' as const
           }))
@@ -145,7 +142,7 @@ export function WorkflowPreview({ open, onOpenChange, workflow }: WorkflowPrevie
     } catch (error) {
       console.error('加载流程图数据失败:', error)
       // 使用默认数据
-      const defaultNodes = workflowNodes.map(node => ({
+      const defaultNodes = defaultWorkflowNodes.map((node: WorkflowNode) => ({
         ...node,
         status: 'pending' as const
       }))
@@ -156,7 +153,7 @@ export function WorkflowPreview({ open, onOpenChange, workflow }: WorkflowPrevie
 
   // 重置节点状态为初始状态
   const resetNodes = () => {
-    const resetNodesData = workflowNodes.map(node => ({
+    const resetNodesData = defaultWorkflowNodes.map(node => ({
       ...node,
       status: 'pending' as const
     }))
@@ -227,7 +224,7 @@ export function WorkflowPreview({ open, onOpenChange, workflow }: WorkflowPrevie
     let step = 0
 
     // 立即设置开始节点为已完成
-    const updatedNodes = nodes.map(node => {
+    const updatedNodes = nodes.map((node: WorkflowNode) => {
       if (node.id === flowOrder[0]) {
         return { ...node, status: 'completed' as const }
       }
@@ -316,7 +313,7 @@ export function WorkflowPreview({ open, onOpenChange, workflow }: WorkflowPrevie
   }).join('')}
 
   <!-- 连线 -->
-  ${workflowEdges.map(edge => {
+  ${edges.map((edge: WorkflowEdge) => {
     const source = nodes.find(n => n.id === edge.source)!
     const target = nodes.find(n => n.id === edge.target)!
 
@@ -535,7 +532,7 @@ export function WorkflowPreview({ open, onOpenChange, workflow }: WorkflowPrevie
                   </marker>
                 </defs>
 
-                {workflowEdges.map(edge => {
+                {edges.map((edge: WorkflowEdge) => {
                   const source = nodes.find(n => n.id === edge.source)!
                   const target = nodes.find(n => n.id === edge.target)!
 
