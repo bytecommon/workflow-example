@@ -20,17 +20,14 @@ export interface WorkflowDefinition {
 }
 
 export interface WorkflowInstance {
-  id: number
-  instanceId: string
-  definitionId: number
-  definitionName: string
-  currentTaskId: number
-  status: number
-  statusText: string
-  startTime: string
-  endTime?: string
-  starterUserId: string
-  starterUserName: string
+  id: number                    // 流程实例ID
+  instanceNo: string            // 流程实例编号
+  workflowName: string          // 工作流名称
+  status: string                // 流程状态：RUNNING-运行中，APPROVED-已通过，REJECTED-已拒绝，CANCELED-已取消，TERMINATED-已终止
+  title: string                 // 流程标题
+  startTime: string             // 发起时间
+  endTime?: string              // 结束时间
+  priority: number              // 优先级：0-普通，1-紧急，2-特急
 }
 
 export interface WorkflowTask {
@@ -91,8 +88,12 @@ export const workflowApi = {
     api.get<ApiResponse<Page<WorkflowDefinition>>>('/workflow/definition', { params }),
   
   // 获取工作流详情
-  getWorkflowDetail: (id: number) => 
+  getWorkflowDetail: (id: number) =>
     api.get<ApiResponse<WorkflowDetailVO>>(`/workflow/definition/${id}`),
+
+  // 获取流程图数据
+  getWorkflowGraph: (id: number) =>
+    api.get<ApiResponse<WorkflowDetailVO>>(`/workflow/definition/${id}/graph`),
   
   // 创建工作流定义
   createDefinition: (data: {
@@ -231,17 +232,40 @@ export interface WorkflowDetailVO {
   status: number
   createTime: string
   updateTime: string
-  // 可以添加更多字段
+  nodes?: WorkflowNodeVO[]
+  edges?: WorkflowEdgeVO[]
+}
+
+export interface WorkflowNodeVO {
+  id: string
+  name: string
+  type: 'start' | 'end' | 'task' | 'approval' | 'decision' | 'parallel' | 'gateway' | 'notification' | 'script'
+  x: number
+  y: number
+  status?: 'pending' | 'active' | 'completed' | 'skipped'
+  assignees?: string[]
+  conditions?: string[]
+}
+
+export interface WorkflowEdgeVO {
+  id: string
+  source: string
+  target: string
+  label?: string
+  condition?: string
 }
 
 export interface WorkflowCcVO {
   id: number
-  instanceId: string
-  definitionName: string
+  instanceId: number
+  instanceNo: string
+  workflowName: string
   nodeName: string
-  senderName: string
+  title: string
+  startUserName: string
+  status: number  // 0-未读,1-已读
   createTime: string
-  read: boolean
+  readTime?: string
 }
 
 export default api

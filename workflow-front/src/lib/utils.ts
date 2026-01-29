@@ -16,8 +16,27 @@ export function formatDate(date: string | Date): string {
   })
 }
 
-export function getStatusColor(status: number): string {
-  switch (status) {
+export function getStatusColor(status: number | string): string {
+  // 兼容数字和字符串类型的status
+  const statusStr = String(status).toUpperCase()
+
+  // 字符串类型（后端返回）
+  if (statusStr === 'RUNNING') {
+    return 'bg-blue-100 text-blue-800'
+  }
+  if (statusStr === 'APPROVED') {
+    return 'bg-green-100 text-green-800'
+  }
+  if (statusStr === 'REJECTED' || statusStr === 'CANCELED') {
+    return 'bg-red-100 text-red-800'
+  }
+  if (statusStr === 'TERMINATED') {
+    return 'bg-gray-100 text-gray-800'
+  }
+
+  // 数字类型（兼容旧代码）
+  const statusNum = Number(status)
+  switch (statusNum) {
     case 0: // 草稿
       return 'bg-gray-100 text-gray-800'
     case 1: // 运行中
@@ -37,8 +56,30 @@ export function getStatusColor(status: number): string {
   }
 }
 
-export function getStatusText(status: number): string {
-  switch (status) {
+export function getStatusText(status: number | string): string {
+  // 兼容数字和字符串类型的status
+  const statusStr = String(status).toUpperCase()
+
+  // 字符串类型（后端返回）
+  if (statusStr === 'RUNNING') {
+    return '运行中'
+  }
+  if (statusStr === 'APPROVED') {
+    return '已通过'
+  }
+  if (statusStr === 'REJECTED') {
+    return '已拒绝'
+  }
+  if (statusStr === 'CANCELED') {
+    return '已取消'
+  }
+  if (statusStr === 'TERMINATED') {
+    return '已终止'
+  }
+
+  // 数字类型（兼容旧代码）
+  const statusNum = Number(status)
+  switch (statusNum) {
     case 0: return '草稿'
     case 1: return '运行中'
     case 2: return '已完成'

@@ -77,16 +77,17 @@ export function InstanceList({ currentUser }: InstanceListProps) {
   }
 
   const filteredInstances = instances.filter(instance => {
-    const matchesSearch = 
-      (instance.definitionName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (instance.instanceId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (instance.starterUserName || '').toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesStatus = statusFilter === 'all' || 
-      (statusFilter === 'running' && instance.status === 1) ||
-      (statusFilter === 'completed' && instance.status === 2) ||
-      (statusFilter === 'terminated' && instance.status === 3)
-    
+    const matchesSearch =
+      (instance.workflowName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (instance.instanceNo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (instance.title || '').toLowerCase().includes(searchTerm.toLowerCase())
+
+    const statusStr = String(instance.status).toUpperCase()
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'running' && statusStr === 'RUNNING') ||
+      (statusFilter === 'completed' && statusStr === 'APPROVED') ||
+      (statusFilter === 'terminated' && (statusStr === 'REJECTED' || statusStr === 'CANCELED' || statusStr === 'TERMINATED'))
+
     return matchesSearch && matchesStatus
   })
 
@@ -109,8 +110,8 @@ export function InstanceList({ currentUser }: InstanceListProps) {
       () => {
         try {
           // 模拟终止操作
-          setInstances(instances.map(instance => 
-            instance.id === id ? { ...instance, status: 3, endTime: new Date().toISOString() } : instance
+          setInstances(instances.map(instance =>
+            instance.id === id ? { ...instance, status: 'TERMINATED', endTime: new Date().toISOString() } : instance
           ))
         } catch (error) {
           console.error('终止实例失败:', error)
@@ -122,9 +123,9 @@ export function InstanceList({ currentUser }: InstanceListProps) {
 
   const statusFilters = [
     { value: 'all', label: '全部', count: instances.length },
-    { value: 'running', label: '运行中', count: instances.filter(i => i.status === 1).length },
-    { value: 'completed', label: '已完成', count: instances.filter(i => i.status === 2).length },
-    { value: 'terminated', label: '已终止', count: instances.filter(i => i.status === 3).length }
+    { value: 'running', label: '运行中', count: instances.filter(i => String(i.status).toUpperCase() === 'RUNNING').length },
+    { value: 'completed', label: '已通过', count: instances.filter(i => String(i.status).toUpperCase() === 'APPROVED').length },
+    { value: 'terminated', label: '已结束', count: instances.filter(i => ['REJECTED', 'CANCELED', 'TERMINATED'].includes(String(i.status).toUpperCase())).length }
   ]
 
   return (
@@ -144,7 +145,7 @@ export function InstanceList({ currentUser }: InstanceListProps) {
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="搜索流程名称、实例ID或发起人..."
+                placeholder="搜索流程标题、工作流名称或实例编号..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
@@ -175,8 +176,8 @@ export function InstanceList({ currentUser }: InstanceListProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>实例编号</TableHead>
-                <TableHead>流程名称</TableHead>
-                <TableHead>发起人</TableHead>
+                <TableHead>流程标题</TableHead>
+                <TableHead>工作流名称</TableHead>
                 <TableHead>开始时间</TableHead>
                 <TableHead>结束时间</TableHead>
                 <TableHead>状态</TableHead>
@@ -199,9 +200,9 @@ export function InstanceList({ currentUser }: InstanceListProps) {
               ) : (
                 filteredInstances.map((instance) => (
                   <TableRow key={instance.id} className="hover:bg-muted/50">
-                    <TableCell className="font-mono text-sm">{instance.instanceId}</TableCell>
-                    <TableCell className="font-medium">{instance.definitionName}</TableCell>
-                    <TableCell>{instance.starterUserName}</TableCell>
+                    <TableCell className="font-mono text-sm">{instance.instanceNo}</TableCell>
+                    <TableCell className="font-medium">{instance.title}</TableCell>
+                    <TableCell>{instance.workflowName}</TableCell>
                     <TableCell>{formatDate(instance.startTime)}</TableCell>
                     <TableCell>
                       {instance.endTime ? formatDate(instance.endTime) : '-'}
@@ -213,16 +214,16 @@ export function InstanceList({ currentUser }: InstanceListProps) {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleInstanceClick(instance)}
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        {instance.status === 1 && (
-                          <Button 
-                            variant="outline" 
+                        {String(instance.status).toUpperCase() === 'RUNNING' && (
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => handleTerminate(instance.id)}
                             className="text-red-600 hover:text-red-700"

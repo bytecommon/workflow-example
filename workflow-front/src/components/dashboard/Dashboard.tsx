@@ -4,7 +4,7 @@ import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { WorkflowList } from '../workflow/WorkflowList'
 import { TaskList } from '../task/TaskList'
-import { WorkflowTask, WorkflowInstance } from '@/lib/api'
+import { WorkflowTask, WorkflowInstance, WorkflowCcVO } from '@/lib/api'
 import { formatDate, getStatusColor, getStatusText } from '@/lib/utils'
 import { apiService } from '@/lib/apiService'
 import { 
@@ -13,7 +13,11 @@ import {
   CheckCircle, 
   PlayCircle,
   FileText,
-  ListTodo
+  ListTodo,
+  Copy,
+  Plus,
+  Eye,
+  BarChart3
 } from 'lucide-react'
 
 interface DashboardProps {
@@ -25,17 +29,20 @@ export function Dashboard({ currentUser }: DashboardProps) {
     totalInstances: 0,
     pendingTasks: 0,
     completedInstances: 0,
-    runningInstances: 0
+    runningInstances: 0,
+    unreadCc: 0
   })
 
   const [recentTasks, setRecentTasks] = useState<WorkflowTask[]>([])
   const [recentInstances, setRecentInstances] = useState<WorkflowInstance[]>([])
+  const [recentCc, setRecentCc] = useState<WorkflowCcVO[]>([])
 
   useEffect(() => {
     // 模拟数据加载
     loadStatistics()
     loadRecentTasks()
     loadRecentInstances()
+    loadRecentCc()
   }, [currentUser])
 
   const loadStatistics = async () => {
@@ -44,8 +51,23 @@ export function Dashboard({ currentUser }: DashboardProps) {
     try {
       // 使用API服务获取数据，传递用户ID
       const response = await apiService.statistics.getStatistics(currentUser.id)
+      
+      // 获取未读抄送数量
+      const ccResponse = await apiService.cc.getMyCc({
+        userId: currentUser.id,
+        pageSize: 100 // 获取所有抄送记录以统计未读数量
+      })
+      
+      let unreadCcCount = 0
+      if (ccResponse.code === 200 && ccResponse.data.records) {
+        unreadCcCount = ccResponse.data.records.filter((cc: WorkflowCcVO) => cc.status === 0).length
+      }
+      
       if (response.code === 200) {
-        setStatistics(response.data)
+        setStatistics({
+          ...response.data,
+          unreadCc: unreadCcCount
+        })
       }
     } catch (error) {
       console.error('获取统计数据失败:', error)
@@ -89,49 +111,102 @@ export function Dashboard({ currentUser }: DashboardProps) {
   }
 
   const loadRecentInstances = async () => {
-    // 模拟最近实例数据
-    setRecentInstances([
-      {
-        id: 1,
-        instanceId: 'INST_001',
-        definitionId: 1,
-        definitionName: '请假申请流程',
-        currentTaskId: 1,
-        status: 1,
-        statusText: '运行中',
-        startTime: '2024-01-15T09:00:00',
-        starterUserId: 'user002',
-        starterUserName: '李四'
-      },
-      {
-        id: 2,
-        instanceId: 'INST_002',
-        definitionId: 2,
-        definitionName: '报销申请流程',
-        currentTaskId: 2,
-        status: 1,
-        statusText: '运行中',
-        startTime: '2024-01-16T13:00:00',
-        starterUserId: 'user003',
-        starterUserName: '王五'
+    if (!currentUser?.id) return
+    
+    try {
+      // 使用API服务获取"我发起的流程"
+      const response = await apiService.instance.getMyInstances({
+        userId: currentUser.id,
+        pageNum: 1,
+        pageSize: 5
+      })
+      if (response.code === 200 && response.data.records) {
+        setRecentInstances(response.data.records)
       }
-    ])
+    } catch (error) {
+      console.error('获取我发起的流程失败:', error)
+      // 使用模拟数据作为后备
+      setRecentInstances([
+        {
+          id: 1,
+          instanceNo: 'INST-2024-001',
+          workflowName: '请假审批',
+          status: 'RUNNING',
+          title: '李四的请假申请',
+          startTime: '2024-01-15T09:00:00',
+          priority: 0
+        },
+        {
+          id: 2,
+          instanceNo: 'INST-2024-002',
+          workflowName: '报销审批',
+          status: 'RUNNING',
+          title: '王五的报销申请',
+          startTime: '2024-01-16T13:00:00',
+          priority: 0
+        }
+      ])
+    }
+  }
+
+  const loadRecentCc = async () => {
+    if (!currentUser?.id) return
+    
+    try {
+      // 使用API服务获取"我的抄送"
+      const response = await apiService.cc.getMyCc({
+        userId: currentUser.id,
+        pageNum: 1,
+        pageSize: 5
+      })
+      if (response.code === 200 && response.data.records) {
+        setRecentCc(response.data.records)
+      }
+    } catch (error) {
+      console.error('获取我的抄送失败:', error)
+      // 使用模拟数据作为后备
+      setRecentCc([
+        {
+          id: 1,
+          instanceId: 100,
+          instanceNo: 'INST-2024-001',
+          workflowName: '请假审批',
+          nodeName: '部门经理审批',
+          title: '张三的请假申请',
+          startUserName: '张三',
+          status: 0,
+          createTime: '2024-01-15T09:00:00'
+        },
+        {
+          id: 2,
+          instanceId: 101,
+          instanceNo: 'INST-2024-002',
+          workflowName: '报销审批',
+          nodeName: '财务审核',
+          title: '李四的报销申请',
+          startUserName: '李四',
+          status: 1,
+          createTime: '2024-01-16T10:00:00',
+          readTime: '2024-01-16T11:00:00'
+        }
+      ])
+    }
   }
 
   const statCards = [
-    {
-      title: '总流程实例',
-      value: statistics.totalInstances,
-      icon: FileText,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50/80'
-    },
     {
       title: '待办任务',
       value: statistics.pendingTasks,
       icon: ListTodo,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50/80'
+    },
+    {
+      title: '未读抄送',
+      value: statistics.unreadCc,
+      icon: Copy,
+      color: 'text-red-600',
+      bgColor: 'bg-red-50/80'
     },
     {
       title: '已完成实例',
@@ -169,13 +244,13 @@ export function Dashboard({ currentUser }: DashboardProps) {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {/* 最近待办任务 */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ListTodo className="h-5 w-5" />
-              最近待办任务
+              待办任务
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -205,12 +280,12 @@ export function Dashboard({ currentUser }: DashboardProps) {
           </CardContent>
         </Card>
 
-        {/* 最近流程实例 */}
+        {/* 我发起的流程 */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              最近流程实例
+              <PlayCircle className="h-5 w-5" />
+              我发起的流程
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -218,9 +293,9 @@ export function Dashboard({ currentUser }: DashboardProps) {
               {recentInstances.map((instance) => (
                 <div key={instance.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
                   <div className="space-y-1">
-                    <div className="font-medium text-foreground">{instance.definitionName}</div>
+                    <div className="font-medium text-foreground">{instance.title}</div>
                     <div className="text-sm text-muted-foreground">
-                      发起人: {instance.starterUserName} • 开始时间: {formatDate(instance.startTime)}
+                      {instance.workflowName} • 开始时间: {formatDate(instance.startTime)}
                     </div>
                   </div>
                   <Badge className={getStatusColor(instance.status)}>
@@ -236,19 +311,68 @@ export function Dashboard({ currentUser }: DashboardProps) {
             </div>
           </CardContent>
         </Card>
+
+        {/* 我的抄送 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Copy className="h-5 w-5" />
+              我的抄送
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {recentCc.map((cc) => (
+                <div key={cc.id} className={`flex items-center justify-between p-3 border rounded-lg bg-card ${cc.status === 0 ? 'border-l-4 border-l-orange-500' : ''}`}>
+                  <div className="space-y-1">
+                    <div className="font-medium text-foreground">{cc.title}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {cc.nodeName} • 发起人: {cc.startUserName} • {formatDate(cc.createTime)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {cc.status === 0 && <Badge variant="secondary">未读</Badge>}
+                    {cc.status === 1 && <Badge variant="outline">已读</Badge>}
+                  </div>
+                </div>
+              ))}
+              {recentCc.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  暂无抄送消息
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* 快速操作 */}
+      {/* 快速操作 - 基于后端接口 */}
       <Card>
         <CardHeader>
           <CardTitle>快速操作</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4">
-            <Button>新建流程</Button>
-            <Button variant="outline">查看所有待办</Button>
-            <Button variant="outline">流程模板库</Button>
-            <Button variant="outline">数据分析</Button>
+          <div className="flex flex-wrap gap-4">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              新建流程
+            </Button>
+            <Button variant="outline" className="gap-2">
+              <ListTodo className="h-4 w-4" />
+              查看待办任务
+            </Button>
+            <Button variant="outline" className="gap-2">
+              <PlayCircle className="h-4 w-4" />
+              查看我发起的流程
+            </Button>
+            <Button variant="outline" className="gap-2">
+              <Copy className="h-4 w-4" />
+              查看我的抄送
+            </Button>
+            <Button variant="outline" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              数据统计
+            </Button>
           </div>
         </CardContent>
       </Card>

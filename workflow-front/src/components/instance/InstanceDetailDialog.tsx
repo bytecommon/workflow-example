@@ -26,13 +26,13 @@ export function InstanceDetailDialog({ open, onOpenChange, instance }: InstanceD
           {
             id: 1,
             taskId: 'TASK_001',
-            instanceId: instance.instanceId,
-            definitionId: instance.definitionId,
-            definitionName: instance.definitionName,
+            instanceId: instance.instanceNo,
+            definitionId: 0,
+            definitionName: instance.workflowName,
             nodeId: 'NODE_001',
             nodeName: '发起申请',
-            assigneeId: instance.starterUserId,
-            assigneeName: instance.starterUserName,
+            assigneeId: 'system',
+            assigneeName: '系统自动',
             status: 11,
             statusText: '已处理',
             createTime: instance.startTime,
@@ -41,50 +41,51 @@ export function InstanceDetailDialog({ open, onOpenChange, instance }: InstanceD
           {
             id: 2,
             taskId: 'TASK_002',
-            instanceId: instance.instanceId,
-            definitionId: instance.definitionId,
-            definitionName: instance.definitionName,
+            instanceId: instance.instanceNo,
+            definitionId: 0,
+            definitionName: instance.workflowName,
             nodeId: 'NODE_002',
             nodeName: '部门经理审批',
             assigneeId: 'user001',
             assigneeName: '张三',
-            status: instance.status === 1 ? 10 : 11,
-            statusText: instance.status === 1 ? '待处理' : '已处理',
+            status: String(instance.status).toUpperCase() === 'RUNNING' ? 10 : 11,
+            statusText: String(instance.status).toUpperCase() === 'RUNNING' ? '待处理' : '已处理',
             createTime: instance.startTime,
-            claimTime: instance.status === 1 ? undefined : '2024-01-15T10:00:00',
-            finishTime: instance.status === 1 ? undefined : '2024-01-15T11:00:00'
+            claimTime: String(instance.status).toUpperCase() === 'RUNNING' ? undefined : '2024-01-15T10:00:00',
+            finishTime: String(instance.status).toUpperCase() === 'RUNNING' ? undefined : '2024-01-15T11:00:00'
           }
         ],
         history: [
           {
             id: 1,
-            instanceId: instance.instanceId,
+            instanceId: instance.instanceNo,
             taskId: 'TASK_001',
             nodeId: 'NODE_001',
             nodeName: '发起申请',
             action: 'START',
             actionText: '启动流程',
-            operatorId: instance.starterUserId,
-            operatorName: instance.starterUserName,
+            operatorId: 'system',
+            operatorName: '系统自动',
             comment: '提交申请',
             createTime: instance.startTime
           },
           {
             id: 2,
-            instanceId: instance.instanceId,
+            instanceId: instance.instanceNo,
             taskId: 'TASK_001',
             nodeId: 'NODE_001',
             nodeName: '发起申请',
             action: 'APPROVE',
             actionText: '审批通过',
-            operatorId: instance.starterUserId,
-            operatorName: instance.starterUserName,
+            operatorId: 'system',
+            operatorName: '系统自动',
             comment: '申请提交完成',
             createTime: instance.startTime
           }
         ],
         variables: {
-          applicant: instance.starterUserName,
+          title: instance.title,
+          workflowName: instance.workflowName,
           department: '技术部',
           reason: '项目进度紧张，需要加班处理',
           startDate: '2024-01-20',
@@ -92,32 +93,33 @@ export function InstanceDetailDialog({ open, onOpenChange, instance }: InstanceD
           days: 3
         }
       }
-      
-      if (instance.status === 2 || instance.status === 3) {
-        // 已完成或已终止的实例添加更多历史记录
+
+      const statusStr = String(instance.status).toUpperCase()
+      if (statusStr === 'APPROVED' || statusStr === 'REJECTED' || statusStr === 'CANCELED' || statusStr === 'TERMINATED') {
+        // 已完成的实例添加更多历史记录
         mockDetail.history.push(
           {
             id: 3,
-            instanceId: instance.instanceId,
+            instanceId: instance.instanceNo,
             taskId: 'TASK_002',
             nodeId: 'NODE_002',
             nodeName: '部门经理审批',
-            action: 'APPROVE',
-            actionText: '审批通过',
+            action: statusStr === 'APPROVED' ? 'APPROVE' : 'REJECT',
+            actionText: statusStr === 'APPROVED' ? '审批通过' : '审批驳回',
             operatorId: 'user001',
             operatorName: '张三',
-            comment: '同意申请',
+            comment: statusStr === 'APPROVED' ? '同意申请' : '拒绝申请',
             createTime: '2024-01-15T11:00:00'
           }
         )
       }
-      
-      if (instance.status === 3) {
+
+      if (statusStr === 'TERMINATED' || statusStr === 'CANCELED') {
         // 已终止的实例添加终止记录
         mockDetail.history.push(
           {
             id: 4,
-            instanceId: instance.instanceId,
+            instanceId: instance.instanceNo,
             taskId: 'TASK_002',
             nodeId: 'NODE_002',
             nodeName: '部门经理审批',
@@ -130,7 +132,7 @@ export function InstanceDetailDialog({ open, onOpenChange, instance }: InstanceD
           }
         )
       }
-      
+
       setInstanceDetail(mockDetail)
     }
   }, [instance])
@@ -148,16 +150,16 @@ export function InstanceDetailDialog({ open, onOpenChange, instance }: InstanceD
           </h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-muted-foreground">实例ID:</span>
-              <div className="font-mono">{instance.instanceId}</div>
+              <span className="text-muted-foreground">实例编号:</span>
+              <div className="font-mono">{instance.instanceNo}</div>
             </div>
             <div>
-              <span className="text-muted-foreground">流程名称:</span>
-              <div>{instance.definitionName}</div>
+              <span className="text-muted-foreground">流程标题:</span>
+              <div>{instance.title}</div>
             </div>
             <div>
-              <span className="text-muted-foreground">发起人:</span>
-              <div>{instance.starterUserName}</div>
+              <span className="text-muted-foreground">工作流名称:</span>
+              <div>{instance.workflowName}</div>
             </div>
             <div>
               <span className="text-muted-foreground">开始时间:</span>

@@ -37,7 +37,37 @@ export const apiService = {
 
     async getWorkflowDetail(id: number) {
       if (useMock) {
-        return mockApi.getWorkflowDefinitions()
+        // 返回模拟的工作流详情数据，包含流程图
+        return {
+          code: 200,
+          message: '成功',
+          data: {
+            id,
+            name: '请假申请流程',
+            key: 'leave_apply',
+            version: 1,
+            description: '员工请假审批流程',
+            status: 1,
+            createTime: '2024-01-01T00:00:00',
+            updateTime: '2024-01-01T00:00:00',
+            nodes: [
+              { id: 'start', name: '开始', type: 'start', x: 50, y: 200, status: 'pending' },
+              { id: 'apply', name: '提交申请', type: 'task', x: 200, y: 200, status: 'pending' },
+              { id: 'dept_approve', name: '部门审批', type: 'approval', x: 370, y: 130, assignees: ['部门经理'], status: 'pending' },
+              { id: 'hr_approve', name: 'HR审批', type: 'approval', x: 370, y: 270, assignees: ['HR经理'], status: 'pending' },
+              { id: 'final_approve', name: '最终审批', type: 'approval', x: 540, y: 200, assignees: ['总经理'], status: 'pending' },
+              { id: 'end', name: '结束', type: 'end', x: 710, y: 200, status: 'pending' }
+            ],
+            edges: [
+              { id: 'e1', source: 'start', target: 'apply' },
+              { id: 'e2', source: 'apply', target: 'dept_approve' },
+              { id: 'e3', source: 'apply', target: 'hr_approve' },
+              { id: 'e4', source: 'dept_approve', target: 'final_approve' },
+              { id: 'e5', source: 'hr_approve', target: 'final_approve' },
+              { id: 'e6', source: 'final_approve', target: 'end' }
+            ]
+          }
+        }
       }
       try {
         const response = await workflowApi.getWorkflowDetail(id)
@@ -295,6 +325,86 @@ export const apiService = {
         return {
           code: 500,
           message: '终止流程实例失败',
+          data: false
+        }
+      }
+    }
+  },
+
+  // 抄送相关
+  cc: {
+    async getMyCc(params: {
+      userId: string
+      pageNum?: number
+      pageSize?: number
+    }) {
+      if (useMock) {
+        // 返回模拟的抄送数据
+        return {
+          code: 200,
+          message: '成功',
+          data: {
+            records: [
+              {
+                id: 1,
+                instanceId: 'INST_001',
+                definitionName: '请假申请流程',
+                nodeName: '部门经理审批',
+                senderName: '张三',
+                createTime: '2024-01-15T10:00:00',
+                read: false
+              }
+            ],
+            total: 1,
+            size: 10,
+            current: 1,
+            pages: 1
+          }
+        }
+      }
+      try {
+        const response = await ccApi.getMyCc(params)
+        return {
+          code: 200,
+          message: '成功',
+          data: response.data.data
+        }
+      } catch (error) {
+        console.error('获取我的抄送失败:', error)
+        return {
+          code: 500,
+          message: '获取我的抄送失败',
+          data: {
+            records: [],
+            total: 0,
+            size: 10,
+            current: 1,
+            pages: 0
+          }
+        }
+      }
+    },
+
+    async markAsRead(id: number) {
+      if (useMock) {
+        return {
+          code: 200,
+          message: '标记成功',
+          data: true
+        }
+      }
+      try {
+        const response = await ccApi.markAsRead(id)
+        return {
+          code: 200,
+          message: '标记成功',
+          data: response.data.data
+        }
+      } catch (error) {
+        console.error('标记抄送为已读失败:', error)
+        return {
+          code: 500,
+          message: '标记抄送为已读失败',
           data: false
         }
       }
