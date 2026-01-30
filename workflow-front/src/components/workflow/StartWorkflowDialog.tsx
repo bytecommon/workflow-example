@@ -103,11 +103,26 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
       }
       const response = await formService.getFormDetail(formId)
       if (response.code === 200 && response.data) {
-        setFormDefinition(response.data)
+        // 处理表单数据：如果 formConfig 是字符串，则解析为对象
+        let formConfig = response.data
+        if (response.data.formConfig && typeof response.data.formConfig === 'string') {
+          try {
+            const parsedConfig = JSON.parse(response.data.formConfig)
+            formConfig = {
+              ...response.data,
+              ...parsedConfig
+            }
+          } catch (parseError) {
+            console.error('解析 formConfig 失败:', parseError)
+          }
+        }
+        
+        setFormDefinition(formConfig)
+        
         // 初始化表单字段值
         const initialValues: Record<string, any> = {}
-        if (response.data.fields) {
-          response.data.fields.forEach(field => {
+        if (formConfig.fields && Array.isArray(formConfig.fields)) {
+          formConfig.fields.forEach((field: any) => {
             if (field.defaultValue !== undefined) {
               initialValues[field.name] = field.defaultValue
             } else if (field.type === 'checkbox') {
