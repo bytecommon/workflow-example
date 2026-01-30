@@ -30,6 +30,8 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [loadingForm, setLoadingForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  const [titleError, setTitleError] = useState('')
   const { success: showSuccess, error: showError } = useToast()
 
   // 加载已发布的流程列表
@@ -42,6 +44,8 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
       setFormDefinition(null)
       setFormData({})
       setTitle('')
+      setFormErrors({})
+      setTitleError('')
     }
   }, [open])
 
@@ -146,10 +150,111 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
       ...prev,
       [name]: value
     }))
+    // 清除该字段的错误
+    if (formErrors[name]) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[name]
+        return newErrors
+      })
+    }
+  }
+
+  const validateForm = () => {
+    if (!formDefinition?.fields) return true
+
+    const errors: Record<string, string> = {}
+    let isValid = true
+
+    formDefinition.fields.forEach((field: FormField) => {
+      // 必填项验证
+      if (field.required) {
+        const value = formData[field.name]
+
+        // 检查是否为空
+        if (value === undefined || value === null || value === '') {
+          errors[field.name] = `${field.label}不能为空`
+          isValid = false
+          return
+        }
+
+        // 根据类型进行额外验证
+        if (field.type === 'number') {
+          if (isNaN(Number(value)) || Number(value) === 0) {
+            errors[field.name] = `${field.label}必须是有效的数字且大于0`
+            isValid = false
+          }
+        }
+
+        if (field.type === 'date') {
+          const dateValue = new Date(value)
+          if (!value || isNaN(dateValue.getTime()) || dateValue.toString() === 'Invalid Date') {
+            errors[field.name] = `${field.label}必须是有效的日期`
+            isValid = false
+          }
+        }
+
+        if (field.type === 'select') {
+          if (!value || value === '') {
+            errors[field.name] = `请选择${field.label}`
+            isValid = false
+          }
+        }
+
+        if (field.type === 'textarea') {
+          if (!value || typeof value !== 'string' || value.trim() === '') {
+            errors[field.name] = `${field.label}不能为空`
+            isValid = false
+          }
+        }
+
+        if (field.type === 'text') {
+          if (!value || typeof value !== 'string' || value.trim() === '') {
+            errors[field.name] = `${field.label}不能为空`
+            isValid = false
+          }
+        }
+      }
+
+      // 数字范围验证（即使不是必填也要验证）
+      if (field.type === 'number' && formData[field.name] !== undefined && field.validation) {
+        const value = Number(formData[field.name])
+        if (!isNaN(value)) {
+          if (field.validation.min !== undefined && value < field.validation.min) {
+            errors[field.name] = `${field.label}不能小于${field.validation.min}`
+            isValid = false
+          }
+          if (field.validation.max !== undefined && value > field.validation.max) {
+            errors[field.name] = `${field.label}不能大于${field.validation.max}`
+            isValid = false
+          }
+        }
+      }
+    })
+
+    // 设置错误状态
+    setFormErrors(errors)
+    return isValid
   }
 
   const handleSubmit = async () => {
     if (!selectedWorkflowId || !currentUser?.id) return
+
+    // 验证流程标题
+    if (!title || title.trim() === '') {
+      setTitleError('请输入流程标题')
+      showError('请输入流程标题')
+      return
+    } else {
+      setTitleError('')
+    }
+
+    // 验证表单
+    if (!validateForm()) {
+      const firstError = Object.values(formErrors)[0]
+      showError(firstError || '请填写所有必填项')
+      return
+    }
 
     setSubmitting(true)
     try {
@@ -168,7 +273,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
         onSubmit(response.data)
         onOpenChange(false)
       } else {
-      showError(response.message)
+        showError(response.message)
       }
     } catch (error) {
       console.error('启动流程失败:', error)
@@ -180,6 +285,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
 
   const renderFormField = (field: FormField) => {
     const value = formData[field.name]
+    const error = formErrors[field.name]
 
     switch (field.type) {
       case 'textarea':
@@ -191,7 +297,9 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
               placeholder={field.placeholder}
               value={value || ''}
               onChange={(e) => handleInputChange(field.name, e.target.value)}
+              className={error ? 'border-red-500 focus:ring-red-500' : ''}
             />
+            {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
           </div>
         )
       case 'select':
@@ -202,7 +310,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
               value={value || ''}
               onValueChange={(val: string) => handleInputChange(field.name, val)}
             >
-              <SelectTrigger>
+              <SelectTrigger className={error ? 'border-red-500 focus:ring-red-500' : ''}>
                 <SelectValue placeholder={field.placeholder || '请选择'} />
               </SelectTrigger>
               <SelectContent>
@@ -215,6 +323,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
                 })}
               </SelectContent>
             </Select>
+            {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
           </div>
         )
       case 'checkbox':
@@ -226,6 +335,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
               onCheckedChange={(checked) => handleInputChange(field.name, checked)}
             />
             <Label htmlFor={field.name} className="cursor-pointer">{field.label}</Label>
+            {error && <p className="text-sm text-red-500 ml-4">{error}</p>}
           </div>
         )
       case 'number':
@@ -238,7 +348,9 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
               placeholder={field.placeholder}
               value={value === undefined ? '' : value}
               onChange={(e) => handleInputChange(field.name, parseFloat(e.target.value))}
+              className={error ? 'border-red-500 focus:ring-red-500' : ''}
             />
+            {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
           </div>
         )
       case 'date':
@@ -250,7 +362,9 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
               type="date"
               value={value || ''}
               onChange={(e) => handleInputChange(field.name, e.target.value)}
+              className={error ? 'border-red-500 focus:ring-red-500' : ''}
             />
+            {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
           </div>
         )
       default:
@@ -263,7 +377,9 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
               placeholder={field.placeholder}
               value={value || ''}
               onChange={(e) => handleInputChange(field.name, e.target.value)}
+              className={error ? 'border-red-500 focus:ring-red-500' : ''}
             />
+            {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
           </div>
         )
     }
@@ -310,13 +426,18 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="instance-title">流程标题</Label>
+                  <Label htmlFor="instance-title">流程标题 <span className="text-red-500">*</span></Label>
                   <Input
                     id="instance-title"
                     placeholder="请输入流程标题"
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={(e) => {
+                      setTitle(e.target.value)
+                      setTitleError('')
+                    }}
+                    className={titleError ? 'border-red-500 focus:ring-red-500' : ''}
                   />
+                  {titleError && <p className="text-sm text-red-500 mt-1">{titleError}</p>}
                 </div>
               </div>
 
@@ -328,9 +449,22 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
                 </div>
 
                 {formDefinition ? (
-                  <div className="grid grid-cols-1 gap-4 border p-4 rounded-lg bg-card">
+                  <div className="border p-4 rounded-lg bg-card">
                     {formDefinition.fields && formDefinition.fields.length > 0 ? (
-                      formDefinition.fields.map(renderFormField)
+                      <>
+                        {/* 非文本域字段：1行2列布局 */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          {formDefinition.fields
+                            .filter((field: FormField) => field.type !== 'textarea')
+                            .map(renderFormField)}
+                        </div>
+                        {/* 文本域字段：1行1列布局 */}
+                        <div className="space-y-4">
+                          {formDefinition.fields
+                            .filter((field: FormField) => field.type === 'textarea')
+                            .map(renderFormField)}
+                        </div>
+                      </>
                     ) : (
                       <div className="text-center py-4 text-muted-foreground text-sm">
                         该流程未配置表单字段
