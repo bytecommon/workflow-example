@@ -1,11 +1,10 @@
 import { workflowApi, instanceApi, taskApi, ccApi, formApi, type Page, type WorkflowDefinition, type WorkflowInstance, type WorkflowTask, type WorkflowCcVO } from './api'
 import { mockApi } from './mock'
 
-// 配置环境变量
+// 1. 基础配置与辅助函数
 const isDevelopment = import.meta.env.DEV
 const useMock = isDevelopment && import.meta.env.VITE_USE_MOCK === 'true'
 
-// 统一的分页空返回
 const emptyPage = <T>(records: T[] = []): Page<T> => ({
   records,
   total: 0,
@@ -14,21 +13,14 @@ const emptyPage = <T>(records: T[] = []): Page<T> => ({
   pages: 0
 })
 
-// 定义子模块
-const workflow = {
-  async getDefinitions(params?: {
-    pageNum?: number
-    pageSize?: number
-    workflowName?: string
-    status?: number
-    category?: string
-  }) {
+// 2. 核心模块定义 (直接导出以规避对象挂载失败风险)
+export const workflowService = {
+  async getDefinitions(params?: any) {
     if (useMock) return mockApi.getWorkflowDefinitions()
     try {
       const response = await workflowApi.getDefinitions(params)
       return { code: 200, message: '成功', data: response.data.data }
     } catch (error) {
-      console.error('获取流程定义列表失败:', error)
       return { code: 500, message: '获取失败', data: emptyPage<WorkflowDefinition>() }
     }
   },
@@ -38,8 +30,7 @@ const workflow = {
       const response = await workflowApi.getWorkflowDetail(id)
       return { code: 200, message: '成功', data: response.data.data }
     } catch (error) {
-      console.error('获取工作流详情失败:', error)
-      return { code: 500, message: '获取失败', data: null }
+      return { code: 500, message: '获取详情失败', data: null }
     }
   },
   async createDefinition(data: any) {
@@ -89,14 +80,14 @@ const workflow = {
   }
 }
 
-const task = {
-  async getPendingTasks(params: { userId: string; pageNum?: number; pageSize?: number; definitionName?: string; nodeName?: string }) {
+export const taskService = {
+  async getPendingTasks(params: any) {
     if (useMock) return mockApi.getPendingTasks()
     try {
       const response = await taskApi.getPendingTasks(params)
       return { code: 200, message: '成功', data: response.data.data }
     } catch (error) {
-      return { code: 500, message: '获取待办任务失败', data: emptyPage<WorkflowTask>() }
+      return { code: 500, message: '获取失败', data: emptyPage<WorkflowTask>() }
     }
   },
   async approveTask(taskId: number, data: any) {
@@ -119,14 +110,14 @@ const task = {
   }
 }
 
-const instance = {
-  async getMyInstances(params: { userId: string; pageNum?: number; pageSize?: number; definitionName?: string; status?: number }) {
+export const instanceService = {
+  async getMyInstances(params: any) {
     if (useMock) return mockApi.getMyInstances()
     try {
       const response = await instanceApi.getMyInstances(params)
       return { code: 200, message: '成功', data: response.data.data }
     } catch (error) {
-      return { code: 500, message: '获取流程实例失败', data: emptyPage<WorkflowInstance>() }
+      return { code: 500, message: '获取失败', data: emptyPage<WorkflowInstance>() }
     }
   },
   async getInstanceDetail(instanceId: number) {
@@ -144,7 +135,7 @@ const instance = {
       const response = await instanceApi.getInstanceInfo(instanceId)
       return { code: 200, message: '成功', data: response.data.data }
     } catch (error) {
-      return { code: 500, message: '获取基本信息失败', data: null }
+      return { code: 500, message: '获取失败', data: null }
     }
   },
   async getInstanceFormData(instanceId: number) {
@@ -153,7 +144,7 @@ const instance = {
       const response = await instanceApi.getInstanceFormData(instanceId)
       return { code: 200, message: '成功', data: response.data.data }
     } catch (error) {
-      return { code: 500, message: '获取表单数据失败', data: null }
+      return { code: 500, message: '获取失败', data: null }
     }
   },
   async getInstanceGraph(instanceId: number) {
@@ -162,7 +153,7 @@ const instance = {
       const response = await instanceApi.getInstanceGraph(instanceId)
       return { code: 200, message: '成功', data: response.data.data }
     } catch (error) {
-      return { code: 500, message: '获取流程图失败', data: null }
+      return { code: 500, message: '获取失败', data: null }
     }
   },
   async getInstanceTasks(instanceId: number) {
@@ -171,7 +162,7 @@ const instance = {
       const response = await instanceApi.getInstanceTasks(instanceId)
       return { code: 200, message: '成功', data: response.data.data }
     } catch (error) {
-      return { code: 500, message: '获取任务列表失败', data: [] }
+      return { code: 500, message: '获取失败', data: [] }
     }
   },
   async getInstanceHistory(instanceId: number) {
@@ -180,7 +171,7 @@ const instance = {
       const response = await instanceApi.getInstanceHistory(instanceId)
       return { code: 200, message: '成功', data: response.data.data }
     } catch (error) {
-      return { code: 500, message: '获取历史失败', data: [] }
+      return { code: 500, message: '获取失败', data: [] }
     }
   },
   async startInstance(data: any) {
@@ -203,14 +194,14 @@ const instance = {
   }
 }
 
-const cc = {
-  async getMyCc(params: { userId: string; pageNum?: number; pageSize?: number }) {
+export const ccService = {
+  async getMyCc(params: any) {
     if (useMock) return mockApi.getMyCc()
     try {
       const response = await ccApi.getMyCc(params)
       return { code: 200, message: '成功', data: response.data.data }
     } catch (error) {
-      return { code: 500, message: '获取抄送失败', data: emptyPage<WorkflowCcVO>() }
+      return { code: 500, message: '获取失败', data: emptyPage<WorkflowCcVO>() }
     }
   },
   async markAsRead(id: number) {
@@ -224,7 +215,7 @@ const cc = {
   }
 }
 
-const form = {
+export const formService = {
   async getFormDetail(formId: number) {
     if (useMock) return mockApi.getFormDetail(formId)
     try {
@@ -237,13 +228,13 @@ const form = {
   }
 }
 
-const user = {
+export const userService = {
   async getUsers() {
     if (useMock) return mockApi.getUsers()
     try {
       return { code: 200, message: '成功', data: [] }
     } catch (error) {
-      return { code: 500, message: '获取用户列表失败', data: [] }
+      return { code: 500, message: '获取失败', data: [] }
     }
   },
   async getCurrentUser() {
@@ -251,12 +242,12 @@ const user = {
     try {
       return { code: 200, message: '成功', data: { id: 'user001', name: '当前用户' } }
     } catch (error) {
-      return { code: 500, message: '获取当前用户失败', data: null }
+      return { code: 500, message: '获取失败', data: null }
     }
   }
 }
 
-const statistics = {
+export const statisticsService = {
   async getStatistics(userId: string) {
     if (useMock) return mockApi.getStatistics()
     try {
@@ -276,23 +267,22 @@ const statistics = {
         }
       }
     } catch (error) {
-      return { code: 500, message: '获取统计失败', data: { totalInstances: 0, pendingTasks: 0, completedInstances: 0, runningInstances: 0, myPendingTasks: 0 } }
+      return { code: 500, message: '获取失败', data: { totalInstances: 0, pendingTasks: 0, completedInstances: 0, runningInstances: 0, myPendingTasks: 0 } }
     }
   }
 }
 
-// 导出完整的 apiService 对象
+// 3. 兼容性导出 (保留 apiService 以支持旧代码，但推荐使用上述具名导出)
 export const apiService = {
-  workflow,
-  task,
-  instance,
-  cc,
-  form,
-  user,
-  statistics
+  workflow: workflowService,
+  task: taskService,
+  instance: instanceService,
+  cc: ccService,
+  form: formService,
+  user: userService,
+  statistics: statisticsService
 }
 
-// 环境配置
 export const config = {
   isDevelopment,
   useMock,
