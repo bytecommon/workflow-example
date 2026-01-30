@@ -33,6 +33,13 @@ export function getStatusColor(status: number | string): string {
   if (statusStr === 'TERMINATED') {
     return 'bg-gray-100 text-gray-800'
   }
+  // TaskVO 的状态
+  if (statusStr === 'PENDING') {
+    return 'bg-orange-100 text-orange-700'
+  }
+  if (statusStr === 'TRANSFERRED') {
+    return 'bg-purple-100 text-purple-700'
+  }
 
   // 数字类型（兼容旧代码）
   const statusNum = Number(status)
@@ -65,7 +72,7 @@ export function getStatusText(status: number | string): string {
     return '运行中'
   }
   if (statusStr === 'APPROVED') {
-    return '已通过'
+    return '已同意'
   }
   if (statusStr === 'REJECTED') {
     return '已拒绝'
@@ -75,6 +82,13 @@ export function getStatusText(status: number | string): string {
   }
   if (statusStr === 'TERMINATED') {
     return '已终止'
+  }
+  // TaskVO 的状态
+  if (statusStr === 'PENDING') {
+    return '待处理'
+  }
+  if (statusStr === 'TRANSFERRED') {
+    return '已转交'
   }
 
   // 数字类型（兼容旧代码）

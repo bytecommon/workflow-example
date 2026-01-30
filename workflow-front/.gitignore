@@ -39,3 +39,8 @@ node_modules/
 jscoverage_lib/
 bower_components/
 dist/
+
+tsconfig.node.tsbuildinfo
+tsconfig.tsbuildinfo
+vite.config.d.ts
+vite.config.js
