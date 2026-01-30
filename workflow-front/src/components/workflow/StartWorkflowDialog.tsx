@@ -27,6 +27,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
   const [formData, setFormData] = useState<Record<string, any>>({})
   const [title, setTitle] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingDetail, setLoadingDetail] = useState(false)
   const [loadingForm, setLoadingForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const { success: showSuccess, error: showError } = useToast()
@@ -302,6 +303,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
               <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-muted">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium">流程信息</div>
+                  {loadingDetail && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                   {workflowDetail && (
                     <Badge variant="outline">{workflowDetail.category || '默认分类'}</Badge>
                   )}
