@@ -24,10 +24,10 @@ interface ConfirmDialogState {
 }
 
 export function InstanceList({ currentUser }: InstanceListProps) {
-  const [instances, setInstances] = useState<WorkflowInstance[]>([])
+  const [instances, setInstances] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedInstance, setSelectedInstance] = useState<WorkflowInstance | null>(null)
+  const [selectedInstance, setSelectedInstance] = useState<any>(null)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
     open: false,

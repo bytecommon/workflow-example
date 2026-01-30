@@ -138,7 +138,9 @@ export function Dashboard({ currentUser }: DashboardProps) {
           status: 'RUNNING',
           title: '李四的请假申请',
           startTime: '2024-01-15T09:00:00',
-          priority: 0
+          priority: 0,
+          starterUserId: 'user001',
+          starterUserName: '张三'
         },
         {
           id: 2,
@@ -147,7 +149,9 @@ export function Dashboard({ currentUser }: DashboardProps) {
           status: 'RUNNING',
           title: '王五的报销申请',
           startTime: '2024-01-16T13:00:00',
-          priority: 0
+          priority: 0,
+          starterUserId: 'user001',
+          starterUserName: '张三'
         }
       ])
     }

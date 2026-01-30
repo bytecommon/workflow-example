@@ -1,9 +1,18 @@
-import { workflowApi, instanceApi, taskApi, ccApi, type Page, type WorkflowDefinition, type WorkflowInstance, type WorkflowTask, type WorkflowCcVO } from './api'
+import { workflowApi, instanceApi, taskApi, ccApi, formApi, type Page, type WorkflowDefinition, type WorkflowInstance, type WorkflowTask, type WorkflowCcVO } from './api'
 import { mockApi } from './mock'
 
 // 配置环境变量
 const isDevelopment = import.meta.env.DEV
 const useMock = isDevelopment && import.meta.env.VITE_USE_MOCK === 'true'
+
+// 统一的分页空返回
+const emptyPage = <T>(records: T[] = []): Page<T> => ({
+  records,
+  total: 0,
+  size: 10,
+  current: 1,
+  pages: 0
+})
 
 // API服务包装器
 export const apiService = {
@@ -31,7 +40,7 @@ export const apiService = {
         return {
           code: 500,
           message: '获取流程定义列表失败',
-          data: { records: [] as WorkflowDefinition[], total: 0, size: 10, current: 1, pages: 0 } as Page<WorkflowDefinition>
+          data: emptyPage<WorkflowDefinition>()
         }
       }
     },
@@ -191,7 +200,7 @@ export const apiService = {
         return {
           code: 500,
           message: '获取待办任务失败',
-          data: { records: [] as WorkflowTask[], total: 0, size: 10, current: 1, pages: 0 } as Page<WorkflowTask>
+          data: emptyPage<WorkflowTask>()
         }
       }
     },
@@ -271,7 +280,7 @@ export const apiService = {
         return {
           code: 500,
           message: '获取流程实例失败',
-          data: { records: [] as WorkflowInstance[], total: 0, size: 10, current: 1, pages: 0 } as Page<WorkflowInstance>
+          data: emptyPage<WorkflowInstance>()
         }
       }
     },
@@ -311,6 +320,84 @@ export const apiService = {
           message: '获取流程实例详情失败',
           data: null
         }
+      }
+    },
+
+    async getInstanceInfo(instanceId: number) {
+      if (useMock) {
+        return { code: 200, message: '成功', data: null }
+      }
+      try {
+        const response = await instanceApi.getInstanceInfo(instanceId)
+        return { code: 200, message: '成功', data: response.data.data }
+      } catch (error) {
+        console.error('获取流程实例基本信息失败:', error)
+        return { code: 500, message: '获取失败', data: null }
+      }
+    },
+
+    async getInstanceFormData(instanceId: number) {
+      if (useMock) {
+        return { code: 200, message: '成功', data: null }
+      }
+      try {
+        const response = await instanceApi.getInstanceFormData(instanceId)
+        return { code: 200, message: '成功', data: response.data.data }
+      } catch (error) {
+        console.error('获取流程实例表单数据失败:', error)
+        return { code: 500, message: '获取失败', data: null }
+      }
+    },
+
+    async getInstanceGraph(instanceId: number) {
+      if (useMock) {
+        return { code: 200, message: '成功', data: null }
+      }
+      try {
+        const response = await instanceApi.getInstanceGraph(instanceId)
+        return { code: 200, message: '成功', data: response.data.data }
+      } catch (error) {
+        console.error('获取流程实例流程图失败:', error)
+        return { code: 500, message: '获取失败', data: null }
+      }
+    },
+
+    async getInstanceTasks(instanceId: number) {
+      if (useMock) {
+        return { code: 200, message: '成功', data: [] }
+      }
+      try {
+        const response = await instanceApi.getInstanceTasks(instanceId)
+        return { code: 200, message: '成功', data: response.data.data }
+      } catch (error) {
+        console.error('获取流程实例任务列表失败:', error)
+        return { code: 500, message: '获取失败', data: [] }
+      }
+    },
+
+    async getInstanceHistory(instanceId: number) {
+      if (useMock) {
+        return { code: 200, message: '成功', data: [] }
+      }
+      try {
+        const response = await instanceApi.getInstanceHistory(instanceId)
+        return { code: 200, message: '成功', data: response.data.data }
+      } catch (error) {
+        console.error('获取流程审批历史失败:', error)
+        return { code: 500, message: '获取失败', data: [] }
+      }
+    },
+
+    async startInstance(data: any) {
+      if (useMock) {
+        return { code: 200, message: '启动成功', data: 1 }
+      }
+      try {
+        const response = await instanceApi.startInstance(data)
+        return { code: 200, message: '启动成功', data: response.data.data }
+      } catch (error) {
+        console.error('启动流程实例失败:', error)
+        return { code: 500, message: '启动失败', data: null }
       }
     },
 
@@ -362,13 +449,7 @@ export const apiService = {
         return {
           code: 500,
           message: '获取我的抄送失败',
-          data: {
-            records: [] as WorkflowCcVO[],
-            total: 0,
-            size: 10,
-            current: 1,
-            pages: 0
-          } as Page<WorkflowCcVO>
+          data: emptyPage<WorkflowCcVO>()
         }
       }
     },
@@ -394,6 +475,30 @@ export const apiService = {
           code: 500,
           message: '标记抄送为已读失败',
           data: false
+        }
+      }
+    }
+  },
+
+  // 表单相关
+  form: {
+    async getFormDetail(formId: number) {
+      if (useMock) {
+        return mockApi.getFormDetail(formId)
+      }
+      try {
+        const response = await formApi.getFormDetail(formId)
+        return {
+          code: 200,
+          message: '成功',
+          data: response.data.data
+        }
+      } catch (error) {
+        console.error('获取表单详情失败:', error)
+        return {
+          code: 500,
+          message: '获取表单详情失败',
+          data: null
         }
       }
     }
