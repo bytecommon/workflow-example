@@ -172,13 +172,9 @@ export const workflowApi = {
   }) => 
     api.get<ApiResponse<Page<WorkflowDefinition>>>('/workflow/definition', { params }),
   
-  // 获取工作流详情
+  // 获取工作流详情（包含流程图数据）
   getWorkflowDetail: (id: number) =>
     api.get<ApiResponse<WorkflowDetailVO>>(`/workflow/definition/${id}`),
-
-  // 获取流程图数据
-  getWorkflowGraph: (id: number) =>
-    api.get<ApiResponse<WorkflowDetailVO>>(`/workflow/definition/${id}/graph`),
   
   // 创建工作流定义
   createDefinition: (data: {

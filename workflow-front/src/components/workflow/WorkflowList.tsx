@@ -8,7 +8,7 @@ import { CreateWorkflowDialog } from './CreateWorkflowDialog'
 import { WorkflowConfigDialog } from './WorkflowConfigDialog'
 import { WorkflowEditDialog } from './WorkflowEditDialog'
 import { WorkflowPreview } from './WorkflowPreview'
-import { WorkflowDefinition } from '@/lib/api'
+import { WorkflowDefinition, type Page } from '@/lib/api'
 import { formatDate, getStatusColor, getStatusText } from '@/lib/utils'
 import { apiService } from '@/lib/apiService'
 import { useToast } from '@/hooks/useToast'
@@ -96,7 +96,7 @@ export function WorkflowList({ currentUser }: WorkflowListProps) {
       })
       if (response.code === 200) {
         const pageData = response.data as Page<WorkflowDefinition>
-        setWorkflows(pageData?.records || [])
+        setWorkflows(pageData?.records || (response.data as any).records || [])
         setSelectedWorkflows([]) // 清空选择
       }
     } catch (error) {
