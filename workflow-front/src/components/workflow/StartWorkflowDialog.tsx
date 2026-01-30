@@ -104,6 +104,14 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
     console.log('开始加载表单详情, formId:', formId)
     setLoadingForm(true)
     try {
+      console.log('apiService 状态:', {
+        hasApiService: !!apiService,
+        hasForm: !!apiService?.form,
+        hasGetFormDetail: !!apiService?.form?.getFormDetail
+      })
+      if (!apiService?.form) {
+        throw new Error('apiService.form 未定义')
+      }
       const response = await apiService.form.getFormDetail(formId)
       console.log('表单详情响应:', response)
       if (response.code === 200 && response.data) {
