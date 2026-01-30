@@ -27,10 +27,9 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
   const [formData, setFormData] = useState<Record<string, any>>({})
   const [title, setTitle] = useState('')
   const [loading, setLoading] = useState(false)
-  const [loadingDetail, setLoadingDetail] = useState(false)
   const [loadingForm, setLoadingForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const { toast } = useToast()
+  const { success: showSuccess, error: showError } = useToast()
 
   // 加载已发布的流程列表
   useEffect(() => {
@@ -61,15 +60,12 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
         pageSize: 100
       })
       if (response.code === 200) {
-        setWorkflows(response.data.records || [])
+        const workflows = Array.isArray(response.data) ? response.data : response.data.records || []
+        setWorkflows(workflows)
       }
     } catch (error) {
       console.error('获取流程列表失败:', error)
-      toast({
-        title: '错误',
-        description: '获取流程列表失败',
-        variant: 'destructive'
-      })
+      showError('获取流程列表失败')
     } finally {
       setLoading(false)
     }
@@ -138,11 +134,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
       }
     } catch (error) {
       console.error('获取表单详情失败:', error)
-      toast({
-        title: '表单加载失败',
-        description: error instanceof Error ? error.message : '请检查网络连接',
-        variant: 'destructive'
-      })
+      showError(error instanceof Error ? error.message : '请检查网络连接')
     } finally {
       setLoadingForm(false)
     }
@@ -171,26 +163,15 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
 
       const response = await instanceService.startInstance(submitData)
       if (response.code === 200) {
-        toast({
-          title: '启动成功',
-          description: '流程实例已成功发起'
-        })
+      showSuccess('流程实例已成功发起')
         onSubmit(response.data)
         onOpenChange(false)
       } else {
-        toast({
-          title: '启动失败',
-          description: response.message,
-          variant: 'destructive'
-        })
+      showError(response.message)
       }
     } catch (error) {
       console.error('启动流程失败:', error)
-      toast({
-        title: '启动失败',
-        description: '请检查网络连接或表单数据',
-        variant: 'destructive'
-      })
+      showError('请检查网络连接或表单数据')
     } finally {
       setSubmitting(false)
     }
@@ -218,7 +199,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
             <Label htmlFor={field.name}>{field.label}{field.required && <span className="text-red-500 ml-1">*</span>}</Label>
             <Select
               value={value || ''}
-              onValueChange={(val) => handleInputChange(field.name, val)}
+              onValueChange={(val: string) => handleInputChange(field.name, val)}
             >
               <SelectTrigger>
                 <SelectValue placeholder={field.placeholder || '请选择'} />
