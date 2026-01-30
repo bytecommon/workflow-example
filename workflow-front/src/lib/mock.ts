@@ -1,4 +1,4 @@
-import { WorkflowDefinition, WorkflowInstance, WorkflowTask, WorkflowHistory } from './api'
+import { WorkflowDefinition, WorkflowInstance, WorkflowTask, WorkflowHistory, FormDefinition } from './api'
 
 // Mock数据生成器
 export const mockData = {
@@ -13,7 +13,9 @@ export const mockData = {
         workflowDesc: '员工请假申请审批流程，包含部门经理和人事审批环节',
         status: 1,
         createTime: '2024-01-01T00:00:00',
-        updateTime: '2024-01-01T00:00:00'
+        updateTime: '2024-01-01T00:00:00',
+        createBy: 'admin',
+        updateBy: 'admin'
       },
       {
         id: 2,
@@ -23,7 +25,9 @@ export const mockData = {
         workflowDesc: '费用报销审批流程，包含部门经理和财务审核环节',
         status: 1,
         createTime: '2024-01-02T00:00:00',
-        updateTime: '2024-01-02T00:00:00'
+        updateTime: '2024-01-02T00:00:00',
+        createBy: 'admin',
+        updateBy: 'admin'
       },
       {
         id: 3,
@@ -33,7 +37,9 @@ export const mockData = {
         workflowDesc: '物品采购审批流程，包含采购主管和财务审批环节',
         status: 0,
         createTime: '2024-01-03T00:00:00',
-        updateTime: '2024-01-03T00:00:00'
+        updateTime: '2024-01-03T00:00:00',
+        createBy: 'admin',
+        updateBy: 'admin'
       },
       {
         id: 4,
@@ -43,7 +49,9 @@ export const mockData = {
         workflowDesc: '公司用印申请审批流程',
         status: 1,
         createTime: '2024-01-04T00:00:00',
-        updateTime: '2024-01-04T00:00:00'
+        updateTime: '2024-01-04T00:00:00',
+        createBy: 'admin',
+        updateBy: 'admin'
       }
     ]
   },
@@ -53,36 +61,45 @@ export const mockData = {
     return [
       {
         id: 1,
-        instanceId: 'INST_20240115001',
+        instanceNo: 'INST_20240115001',
         definitionId: 1,
         definitionName: '请假申请流程',
-        currentTaskId: 1,
+        definitionKey: 'LEAVE_APPLICATION',
+        workflowName: '请假申请流程',
+        title: '张三的请假申请',
         status: 1,
         statusText: '运行中',
+        priority: 0,
         startTime: '2024-01-15T09:00:00',
         starterUserId: 'user002',
         starterUserName: '李四'
       },
       {
         id: 2,
-        instanceId: 'INST_20240116001',
+        instanceNo: 'INST_20240116001',
         definitionId: 2,
         definitionName: '报销申请流程',
-        currentTaskId: 2,
+        definitionKey: 'EXPENSE_APPLICATION',
+        workflowName: '报销申请流程',
+        title: '王五的报销申请',
         status: 1,
         statusText: '运行中',
+        priority: 1,
         startTime: '2024-01-16T13:00:00',
         starterUserId: 'user003',
         starterUserName: '王五'
       },
       {
         id: 3,
-        instanceId: 'INST_20240110001',
+        instanceNo: 'INST_20240110001',
         definitionId: 3,
         definitionName: '采购申请流程',
-        currentTaskId: 0,
+        definitionKey: 'PURCHASE_APPLICATION',
+        workflowName: '采购申请流程',
+        title: '赵六的采购申请',
         status: 2,
         statusText: '已完成',
+        priority: 0,
         startTime: '2024-01-10T09:00:00',
         endTime: '2024-01-12T16:00:00',
         starterUserId: 'user004',
@@ -90,12 +107,15 @@ export const mockData = {
       },
       {
         id: 4,
-        instanceId: 'INST_20240108001',
+        instanceNo: 'INST_20240108001',
         definitionId: 1,
         definitionName: '请假申请流程',
-        currentTaskId: 0,
+        definitionKey: 'LEAVE_APPLICATION',
+        workflowName: '请假申请流程',
+        title: '钱七的请假申请',
         status: 3,
         statusText: '已终止',
+        priority: 0,
         startTime: '2024-01-08T10:00:00',
         endTime: '2024-01-09T11:00:00',
         starterUserId: 'user005',
@@ -191,10 +211,106 @@ export const mockData = {
   // 生成统计信息
   generateStatistics() {
     return {
-      totalInstances: 156,
-      pendingTasks: 12,
-      completedInstances: 89,
-      runningInstances: 45
+      totalInstances: 4,
+      pendingTasks: 5,
+      completedInstances: 1,
+      runningInstances: 2,
+      myPendingTasks: 3
+    }
+  },
+
+  // 生成表单定义数据
+  generateFormDefinitions(): Record<number, FormDefinition> {
+    return {
+      1: {
+        id: 1,
+        formName: '请假申请表',
+        formKey: 'leave_form',
+        formDesc: '员工请假申请表单',
+        formConfig: JSON.stringify({
+          fields: [
+            {
+              name: 'leaveType',
+              label: '请假类型',
+              type: 'select',
+              required: true,
+              options: ['年假', '病假', '事假', '调休']  // 字符串数组格式
+            },
+            {
+              name: 'days',
+              label: '请假天数',
+              type: 'number',
+              required: true
+            },
+            {
+              name: 'startDate',
+              label: '开始日期',
+              type: 'date',
+              required: true
+            },
+            {
+              name: 'endDate',
+              label: '结束日期',
+              type: 'date',
+              required: true
+            },
+            {
+              name: 'reason',
+              label: '请假原因',
+              type: 'textarea',
+              required: true
+            }
+          ]
+        }),
+        status: 1,
+        createTime: '2026-01-30T09:08:45',
+        updateTime: '2026-01-30T09:08:45'
+      },
+      2: {
+        id: 2,
+        formName: '报销申请表',
+        formKey: 'expense_form',
+        formDesc: '费用报销申请表单',
+        formConfig: JSON.stringify({
+          fields: [
+            {
+              name: 'expenseType',
+              label: '费用类型',
+              type: 'select',
+              required: true,
+              options: ['差旅费', '办公费', '培训费', '招待费', '其他']
+            },
+            {
+              name: 'amount',
+              label: '报销金额',
+              type: 'number',
+              required: true
+            },
+            {
+              name: 'expenseDate',
+              label: '费用发生日期',
+              type: 'date',
+              required: true
+            },
+            {
+              name: 'description',
+              label: '费用说明',
+              type: 'textarea',
+              required: true
+            },
+            {
+              name: 'hasInvoice',
+              label: '是否有发票',
+              type: 'checkbox',
+              defaultValue: false,
+              required: false
+            }
+          ]
+        }),
+        status: 1,
+        createTime: '2024-01-02T00:00:00',
+        updateTime: '2024-01-02T00:00:00'
+      }
     }
   }
 }
@@ -327,6 +443,25 @@ export const mockApi = {
       code: 200,
       message: '创建成功',
       data: Math.floor(Math.random() * 1000) + 100
+    }
+  },
+
+  // 获取表单详情
+  async getFormDetail(formId: number) {
+    await this.delay()
+    const forms = mockData.generateFormDefinitions()
+    const form = forms[formId]
+    if (!form) {
+      return {
+        code: 404,
+        message: '表单不存在',
+        data: null
+      }
+    }
+    return {
+      code: 200,
+      message: '成功',
+      data: form
     }
   }
 }

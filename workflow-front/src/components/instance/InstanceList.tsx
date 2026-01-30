@@ -27,7 +27,7 @@ export function InstanceList({ currentUser }: InstanceListProps) {
   const [instances, setInstances] = useState<WorkflowInstance[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedInstance, setSelectedInstance] = useState<InstanceDetailVO | null>(null)
+  const [selectedInstance, setSelectedInstance] = useState<WorkflowInstance | null>(null)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
     open: false,
@@ -93,10 +93,18 @@ export function InstanceList({ currentUser }: InstanceListProps) {
 
   const handleInstanceClick = async (instance: WorkflowInstance) => {
     try {
+      console.log('点击流程实例:', instance)
+      if (!instance?.id) {
+        console.error('实例ID不存在:', instance)
+        return
+      }
       const response = await apiService.instance.getInstanceDetail(instance.id)
-      if (response.code === 200) {
+      console.log('获取实例详情响应:', response)
+      if (response.code === 200 && response.data) {
         setSelectedInstance(response.data)
         setShowDetailDialog(true)
+      } else {
+        console.error('获取实例详情失败:', response.message)
       }
     } catch (error) {
       console.error('获取实例详情失败:', error)
@@ -134,7 +142,7 @@ export function InstanceList({ currentUser }: InstanceListProps) {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>流程实例查询</CardTitle>
-            <Button variant="outline" onClick={() => window.location.reload()}>
+            <Button variant="outline" onClick={loadInstances} disabled={loading}>
               刷新
             </Button>
           </div>

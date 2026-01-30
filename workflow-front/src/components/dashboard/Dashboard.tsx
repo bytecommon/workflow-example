@@ -4,13 +4,15 @@ import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { WorkflowList } from '../workflow/WorkflowList'
 import { TaskList } from '../task/TaskList'
+import { StartWorkflowDialog } from '../workflow/StartWorkflowDialog'
 import { WorkflowTask, WorkflowInstance, WorkflowCcVO } from '@/lib/api'
 import { formatDate, getStatusColor, getStatusText } from '@/lib/utils'
 import { apiService } from '@/lib/apiService'
-import { 
-  TrendingUp, 
-  Clock, 
-  CheckCircle, 
+import { useToast } from '@/hooks/useToast'
+import {
+  TrendingUp,
+  Clock,
+  CheckCircle,
   PlayCircle,
   FileText,
   ListTodo,
@@ -25,6 +27,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ currentUser }: DashboardProps) {
+  const toast = useToast()
   const [statistics, setStatistics] = useState({
     totalInstances: 0,
     pendingTasks: 0,
@@ -36,6 +39,7 @@ export function Dashboard({ currentUser }: DashboardProps) {
   const [recentTasks, setRecentTasks] = useState<WorkflowTask[]>([])
   const [recentInstances, setRecentInstances] = useState<WorkflowInstance[]>([])
   const [recentCc, setRecentCc] = useState<WorkflowCcVO[]>([])
+  const [startWorkflowDialogOpen, setStartWorkflowDialogOpen] = useState(false)
 
   useEffect(() => {
     // 模拟数据加载
@@ -190,6 +194,28 @@ export function Dashboard({ currentUser }: DashboardProps) {
           readTime: '2024-01-16T11:00:00'
         }
       ])
+    }
+  }
+
+  const handleStartWorkflow = async (data: any) => {
+    console.log('Dashboard接收到工作流提交数据:', data)
+    console.log('当前用户信息:', currentUser)
+    try {
+      const response = await apiService.instance.startInstance(data)
+      console.log('API响应:', response)
+      if (response.code === 200) {
+        // 刷新统计数据和流程实例列表
+        await Promise.all([
+          loadStatistics(),
+          loadRecentInstances()
+        ])
+        toast.success('流程发起成功！')
+      } else {
+        toast.error(response.message || '流程发起失败')
+      }
+    } catch (error) {
+      console.error('发起流程失败:', error)
+      toast.error('流程发起失败，请重试')
     }
   }
 
@@ -353,9 +379,12 @@ export function Dashboard({ currentUser }: DashboardProps) {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
-            <Button className="gap-2">
+            <Button 
+              className="gap-2"
+              onClick={() => setStartWorkflowDialogOpen(true)}
+            >
               <Plus className="h-4 w-4" />
-              新建流程
+              发起流程申请
             </Button>
             <Button variant="outline" className="gap-2">
               <ListTodo className="h-4 w-4" />
@@ -376,6 +405,14 @@ export function Dashboard({ currentUser }: DashboardProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* 流程申请对话框 */}
+      <StartWorkflowDialog
+        open={startWorkflowDialogOpen}
+        onOpenChange={setStartWorkflowDialogOpen}
+        onSubmit={handleStartWorkflow}
+        currentUser={currentUser}
+      />
     </div>
   )
 }

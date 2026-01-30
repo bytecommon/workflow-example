@@ -72,10 +72,30 @@ public interface WorkflowService {
     Page<InstanceVO> getMyInstances(InstanceQueryDTO query);
     
     /**
-     * 获取流程实例详情
+     * 获取流程实例详情（完整信息）
      */
     InstanceDetailVO getInstanceDetail(Long instanceId);
-    
+
+    /**
+     * 获取流程实例基本信息
+     */
+    InstanceInfoVO getInstanceInfo(Long instanceId);
+
+    /**
+     * 获取流程实例表单数据
+     */
+    InstanceFormDataVO getInstanceFormData(Long instanceId);
+
+    /**
+     * 获取流程实例流程图
+     */
+    InstanceGraphVO getInstanceGraph(Long instanceId);
+
+    /**
+     * 获取流程实例任务列表
+     */
+    List<TaskVO> getInstanceTasks(Long instanceId);
+
     /**
      * 获取流程审批历史
      */

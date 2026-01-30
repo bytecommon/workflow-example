@@ -11,17 +11,18 @@ import { WorkflowPreview } from './WorkflowPreview'
 import { WorkflowDefinition } from '@/lib/api'
 import { formatDate, getStatusColor, getStatusText } from '@/lib/utils'
 import { apiService } from '@/lib/apiService'
+import { useToast } from '@/hooks/useToast'
 import { WorkflowIcon } from './WorkflowIcon'
-import { 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
-  Play, 
-  Settings, 
-  Download, 
-  Upload, 
-  Copy, 
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  Play,
+  Settings,
+  Download,
+  Upload,
+  Copy,
   Eye,
   Check,
   X,
@@ -43,6 +44,7 @@ interface ConfirmDialogState {
 }
 
 export function WorkflowList({ currentUser }: WorkflowListProps) {
+  const toast = useToast()
   const [workflows, setWorkflows] = useState<WorkflowDefinition[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -152,7 +154,7 @@ export function WorkflowList({ currentUser }: WorkflowListProps) {
           await loadWorkflows()
         } catch (error) {
           console.error('批量发布失败:', error)
-          alert('批量发布失败，请稍后重试')
+          toast.error('批量发布失败，请稍后重试')
         }
       }
     )
@@ -172,7 +174,7 @@ export function WorkflowList({ currentUser }: WorkflowListProps) {
           await loadWorkflows()
         } catch (error) {
           console.error('批量删除失败:', error)
-          alert('批量删除失败，请稍后重试')
+          toast.error('批量删除失败，请稍后重试')
         }
       },
       'destructive'
@@ -192,11 +194,11 @@ export function WorkflowList({ currentUser }: WorkflowListProps) {
       
       if (response.code === 200) {
         await loadWorkflows()
-        alert('流程复制成功')
+        toast.success('流程复制成功')
       }
     } catch (error) {
       console.error('复制流程失败:', error)
-      alert('复制流程失败，请稍后重试')
+      toast.error('复制流程失败，请稍后重试')
     }
   }
 
@@ -216,11 +218,11 @@ export function WorkflowList({ currentUser }: WorkflowListProps) {
         await loadWorkflows()
         setShowCreateDialog(false)
       } else {
-        alert(`创建流程失败: ${response.message}`)
+        toast.error(`创建流程失败: ${response.message}`)
       }
     } catch (error) {
       console.error('创建流程失败:', error)
-      alert('创建流程失败，请稍后重试')
+      toast.error('创建流程失败，请稍后重试')
     }
   }
 
@@ -234,11 +236,11 @@ export function WorkflowList({ currentUser }: WorkflowListProps) {
           if (response.code === 200) {
             await loadWorkflows()
           } else {
-            alert(`发布流程失败: ${response.message}`)
+            toast.error(`发布流程失败: ${response.message}`)
           }
         } catch (error) {
           console.error('发布流程失败:', error)
-          alert('发布流程失败，请稍后重试')
+          toast.error('发布流程失败，请稍后重试')
         }
       }
     )
@@ -254,11 +256,11 @@ export function WorkflowList({ currentUser }: WorkflowListProps) {
           if (response.code === 200) {
             await loadWorkflows()
           } else {
-            alert(`删除流程失败: ${response.message}`)
+            toast.error(`删除流程失败: ${response.message}`)
           }
         } catch (error) {
           console.error('删除流程失败:', error)
-          alert('删除流程失败，请稍后重试')
+          toast.error('删除流程失败，请稍后重试')
         }
       },
       'destructive'

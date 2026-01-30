@@ -52,9 +52,9 @@ interface WorkflowEdge {
 
 // 默认流程节点数据 - 优化布局
 const defaultWorkflowNodes: WorkflowNode[] = [
-  { id: 'start', name: '开始', type: 'start', x: 50, y: 200, status: 'completed' },
-  { id: 'apply', name: '提交申请', type: 'task', x: 200, y: 200, status: 'completed' },
-  { id: 'dept_approve', name: '部门审批', type: 'approval', x: 370, y: 130, assignees: ['部门经理'], status: 'active' },
+  { id: 'start', name: '开始', type: 'start', x: 50, y: 200, status: 'pending' },
+  { id: 'apply', name: '提交申请', type: 'task', x: 200, y: 200, status: 'pending' },
+  { id: 'dept_approve', name: '部门审批', type: 'approval', x: 370, y: 130, assignees: ['部门经理'], status: 'pending' },
   { id: 'hr_approve', name: 'HR审批', type: 'approval', x: 370, y: 270, assignees: ['HR经理'], status: 'pending' },
   { id: 'final_approve', name: '最终审批', type: 'approval', x: 540, y: 200, assignees: ['总经理'], status: 'pending' },
   { id: 'end', name: '结束', type: 'end', x: 710, y: 200, status: 'pending' }
@@ -98,27 +98,52 @@ export function WorkflowPreview({ open, onOpenChange, workflow }: WorkflowPrevie
     }
   }, [open, workflow])
 
+  // 映射后台节点类型到前端节点类型
+  const mapNodeType = (nodeType: string): 'start' | 'end' | 'task' | 'approval' | 'decision' => {
+    switch (nodeType) {
+      case 'START': return 'start'
+      case 'END': return 'end'
+      case 'APPROVE': return 'approval'
+      case 'CC': return 'task'
+      case 'CONDITION': return 'decision'
+      default: return 'task'
+    }
+  }
+
   // 加载流程图数据
   const loadWorkflowGraph = async (workflowId: number) => {
     try {
       const response = await apiService.workflow.getWorkflowDetail(workflowId)
+      console.log('流程图数据响应:', response)
+
       if (response.code === 200 && response.data) {
         const graphData = response.data as WorkflowDetailVO
+        console.log('解析后的流程图数据:', graphData)
 
         // 加载节点数据
         if (graphData.nodes && graphData.nodes.length > 0) {
-          const newNodes = graphData.nodes.map((node: any) => ({
-            id: node.id,
-            name: node.name,
-            type: node.type,
-            x: node.x,
-            y: node.y,
-            status: node.status || 'pending',
-            assignees: node.assignees,
-            conditions: node.conditions
-          }))
+          console.log('加载节点，数量:', graphData.nodes.length)
+          console.log('原始节点数据:', graphData.nodes)
+          const newNodes = graphData.nodes.map((node: any, index: number) => {
+            console.log(`处理节点[${index}]:`, node, 'id:', node.id, 'nodeName:', node.nodeName)
+            // 映射后台字段到前端字段
+            const processedNode = {
+              id: String(node.id),
+              name: node.nodeName || '未命名节点',
+              type: mapNodeType(node.nodeType || 'TASK'),
+              x: typeof node.positionX === 'number' ? node.positionX : 0,
+              y: typeof node.positionY === 'number' ? node.positionY : 0,
+              status: 'pending' as const,
+              assignees: [],
+              conditions: []
+            }
+            console.log(`处理后节点[${index}]:`, processedNode)
+            return processedNode
+          })
+          console.log('设置节点数据:', newNodes, '节点数量:', newNodes.length)
           setNodes(newNodes)
         } else {
+          console.log('使用默认节点数据')
           // 使用默认节点数据
           const defaultNodes = workflowNodes.map(node => ({
             ...node,
@@ -129,18 +154,34 @@ export function WorkflowPreview({ open, onOpenChange, workflow }: WorkflowPrevie
 
         // 加载连线数据
         if (graphData.edges && graphData.edges.length > 0) {
-          const newEdges = graphData.edges.map((edge: any) => ({
-            id: edge.id,
-            source: edge.source,
-            target: edge.target,
-            label: edge.label,
-            condition: edge.condition
-          }))
+          console.log('加载连线，数量:', graphData.edges.length)
+          console.log('原始连线数据:', graphData.edges)
+          const newEdges = graphData.edges.map((edge: any, index: number) => {
+            console.log(`处理连线[${index}]:`, edge)
+            return {
+              id: String(edge.id),
+              source: String(edge.sourceNodeId),
+              target: String(edge.targetNodeId),
+              label: edge.conditionExpr || '',
+              condition: edge.conditionExpr || ''
+            }
+          })
+          console.log('设置连线数据:', newEdges)
           setEdges(newEdges)
         } else {
+          console.log('使用默认连线数据')
           // 使用默认连线数据
           setEdges(defaultWorkflowEdges)
         }
+      } else {
+        console.log('响应没有数据，使用默认数据')
+        // 没有返回数据，使用默认数据
+        const defaultNodes = workflowNodes.map(node => ({
+          ...node,
+          status: 'pending' as const
+        }))
+        setNodes(defaultNodes)
+        setEdges(defaultWorkflowEdges)
       }
     } catch (error) {
       console.error('加载流程图数据失败:', error)
@@ -156,16 +197,57 @@ export function WorkflowPreview({ open, onOpenChange, workflow }: WorkflowPrevie
 
   // 重置节点状态为初始状态
   const resetNodes = () => {
-    const resetNodesData = workflowNodes.map(node => ({
-      ...node,
-      status: 'pending' as const
-    }))
-    setNodes(resetNodesData)
+    setNodes(prevNodes =>
+      prevNodes.map(node => ({
+        ...node,
+        status: 'pending' as const
+      }))
+    )
   }
 
-  // 获取节点流转顺序
+  // 获取节点流转顺序（根据连线动态计算）
   const getNodeFlowOrder = (): string[] => {
-    return ['start', 'apply', 'dept_approve', 'final_approve', 'end']
+    // 根据连线构建流转顺序
+    const nodeMap = new Map<string, string>()
+    const startNodes = nodes.filter(n => n.type === 'start')
+
+    // 构建节点流转映射
+    edges.forEach(edge => {
+      nodeMap.set(edge.source, edge.target)
+    })
+
+    // 从开始节点开始追踪流转
+    const flowOrder: string[] = []
+    const visited = new Set<string>()
+
+    const traverse = (nodeId: string) => {
+      if (visited.has(nodeId) || flowOrder.length >= nodes.length) return
+
+      flowOrder.push(nodeId)
+      visited.add(nodeId)
+
+      const nextNodeId = nodeMap.get(nodeId)
+      if (nextNodeId) {
+        traverse(nextNodeId)
+      }
+    }
+
+    // 从所有开始节点开始遍历
+    startNodes.forEach(startNode => {
+      if (!visited.has(startNode.id)) {
+        traverse(startNode.id)
+      }
+    })
+
+    // 如果没有连线数据，回退到按 x 坐标排序
+    if (flowOrder.length === 0) {
+      return nodes
+        .filter(node => node.type !== 'decision' && node.type !== 'parallel')
+        .sort((a, b) => a.x - b.x)
+        .map(node => node.id)
+    }
+
+    return flowOrder
   }
 
   // 拖动相关事件处理
@@ -316,9 +398,12 @@ export function WorkflowPreview({ open, onOpenChange, workflow }: WorkflowPrevie
   }).join('')}
 
   <!-- 连线 -->
-  ${workflowEdges.map(edge => {
-    const source = nodes.find(n => n.id === edge.source)!
-    const target = nodes.find(n => n.id === edge.target)!
+  ${edges.map(edge => {
+    const source = nodes.find(n => n.id === edge.source)
+    const target = nodes.find(n => n.id === edge.target)
+
+    // 安全检查，如果找不到源节点或目标节点，跳过该连线
+    if (!source || !target) return ''
 
     const x1 = source.x + 120
     const y1 = source.y + 30
@@ -535,9 +620,12 @@ export function WorkflowPreview({ open, onOpenChange, workflow }: WorkflowPrevie
                   </marker>
                 </defs>
 
-                {workflowEdges.map(edge => {
-                  const source = nodes.find(n => n.id === edge.source)!
-                  const target = nodes.find(n => n.id === edge.target)!
+                {edges.map(edge => {
+                  const source = nodes.find(n => n.id === edge.source)
+                  const target = nodes.find(n => n.id === edge.target)
+
+                  // 安全检查，如果找不到源节点或目标节点，跳过该连线
+                  if (!source || !target) return null
 
                   const x1 = source.x + 130
                   const y1 = source.y + 30
@@ -563,7 +651,9 @@ export function WorkflowPreview({ open, onOpenChange, workflow }: WorkflowPrevie
                 })}
 
                 {/* 节点 */}
-                {nodes.map(node => {
+                {(() => { console.log('渲染节点，数量:', nodes.length, '节点数据:', nodes); return null; })()}
+                {nodes.map((node, index) => {
+                  console.log(`渲染节点[${index}]:`, node)
                   const colors = getNodeColor(node.type, node.status)
                   const isActive = animation && node.status === 'active'
 

@@ -126,7 +126,35 @@ public class WorkflowController {
         InstanceDetailVO detail = workflowService.getInstanceDetail(instanceId);
         return Result.success(detail);
     }
-    
+
+    @Operation(summary = "获取流程实例基本信息")
+    @GetMapping("/instance/{instanceId}/info")
+    public Result<InstanceInfoVO> getInstanceInfo(@PathVariable Long instanceId) {
+        InstanceInfoVO info = workflowService.getInstanceInfo(instanceId);
+        return Result.success(info);
+    }
+
+    @Operation(summary = "获取流程实例表单数据")
+    @GetMapping("/instance/{instanceId}/form")
+    public Result<InstanceFormDataVO> getInstanceFormData(@PathVariable Long instanceId) {
+        InstanceFormDataVO formData = workflowService.getInstanceFormData(instanceId);
+        return Result.success(formData);
+    }
+
+    @Operation(summary = "获取流程实例流程图")
+    @GetMapping("/instance/{instanceId}/graph")
+    public Result<InstanceGraphVO> getInstanceGraph(@PathVariable Long instanceId) {
+        InstanceGraphVO graph = workflowService.getInstanceGraph(instanceId);
+        return Result.success(graph);
+    }
+
+    @Operation(summary = "获取流程实例任务列表")
+    @GetMapping("/instance/{instanceId}/tasks")
+    public Result<List<TaskVO>> getInstanceTasks(@PathVariable Long instanceId) {
+        List<TaskVO> tasks = workflowService.getInstanceTasks(instanceId);
+        return Result.success(tasks);
+    }
+
     @Operation(summary = "获取流程审批历史")
     @GetMapping("/instance/{instanceId}/history")
     public Result<List<HistoryVO>> getInstanceHistory(@PathVariable Long instanceId) {

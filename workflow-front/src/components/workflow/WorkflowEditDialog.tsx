@@ -7,10 +7,10 @@ import { Textarea } from '../ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Badge } from '../ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
-import { 
-  Save, 
-  Copy, 
-  History, 
+import {
+  Save,
+  Copy,
+  History,
   Eye,
   Download,
   Upload,
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { WorkflowDefinition } from '@/lib/api'
 import { apiService } from '@/lib/apiService'
+import { useToast } from '@/hooks/useToast'
 import { formatDate } from '@/lib/utils'
 
 interface WorkflowEditDialogProps {
@@ -36,12 +37,13 @@ interface WorkflowVersion {
   comment?: string
 }
 
-export function WorkflowEditDialog({ 
-  open, 
-  onOpenChange, 
-  workflow, 
-  onSave 
+export function WorkflowEditDialog({
+  open,
+  onOpenChange,
+  workflow,
+  onSave
 }: WorkflowEditDialogProps) {
+  const toast = useToast()
   const [activeTab, setActiveTab] = useState('basic')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -134,11 +136,11 @@ export function WorkflowEditDialog({
         onSave(updatedWorkflow)
         onOpenChange(false)
       } else {
-        alert(`保存失败: ${response.message}`)
+        toast.error(`保存失败: ${response.message}`)
       }
     } catch (error) {
       console.error('保存失败:', error)
-      alert('保存失败，请稍后重试')
+      toast.error('保存失败，请稍后重试')
     } finally {
       setSaving(false)
     }
@@ -158,14 +160,14 @@ export function WorkflowEditDialog({
           formId: formData.formId,
           icon: formData.icon
         })
-        
+
         if (response.code === 200) {
-          alert('新版本创建成功')
+          toast.success('新版本创建成功')
           onOpenChange(false)
         }
       } catch (error) {
         console.error('创建新版本失败:', error)
-        alert('创建新版本失败，请稍后重试')
+        toast.error('创建新版本失败，请稍后重试')
       } finally {
         setSaving(false)
       }
@@ -186,14 +188,14 @@ export function WorkflowEditDialog({
           formId: formData.formId,
           icon: formData.icon
         })
-        
+
         if (response.code === 200) {
-          alert('回滚成功')
+          toast.success('回滚成功')
           onOpenChange(false)
         }
       } catch (error) {
         console.error('回滚失败:', error)
-        alert('回滚失败，请稍后重试')
+        toast.error('回滚失败，请稍后重试')
       } finally {
         setSaving(false)
       }
@@ -232,11 +234,11 @@ export function WorkflowEditDialog({
         if (importedData.config) {
           setFormData(importedData.config)
         }
-        
-        alert('导入成功')
+
+        toast.success('导入成功')
       } catch (error) {
         console.error('导入失败:', error)
-        alert('导入失败，文件格式不正确')
+        toast.error('导入失败，文件格式不正确')
       }
     }
     
@@ -248,248 +250,250 @@ export function WorkflowEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0 flex flex-col">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
           <DialogTitle className="flex items-center space-x-2">
             <Eye className="w-5 h-5" />
             <span>编辑流程 - {workflow.workflowName}</span>
           </DialogTitle>
         </DialogHeader>
-        
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="basic">基本信息</TabsTrigger>
-            <TabsTrigger value="versions">版本管理</TabsTrigger>
-            <TabsTrigger value="importExport">导入导出</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="basic" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">流程基本信息</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="workflowName">流程名称</Label>
-                    <Input
-                      id="workflowName"
-                      value={formData.workflowName}
-                      onChange={(e) => setFormData({...formData, workflowName: e.target.value})}
-                      placeholder="请输入流程名称"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="workflowKey">流程关键字</Label>
-                    <Input
-                      id="workflowKey"
-                      value={formData.workflowKey}
-                      onChange={(e) => setFormData({...formData, workflowKey: e.target.value.toUpperCase()})}
-                      placeholder="请输入流程关键字"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="workflowDesc">流程描述</Label>
-                  <Textarea
-                    id="workflowDesc"
-                    value={formData.workflowDesc}
-                    onChange={(e) => setFormData({...formData, workflowDesc: e.target.value})}
-                    placeholder="请输入流程描述"
-                    rows={3}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="category">流程分类</Label>
-                    <Input
-                      id="category"
-                      value={formData.category}
-                      onChange={(e) => setFormData({...formData, category: e.target.value})}
-                      placeholder="请输入流程分类"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="icon">图标</Label>
-                    <Input
-                      id="icon"
-                      value={formData.icon}
-                      onChange={(e) => setFormData({...formData, icon: e.target.value})}
-                      placeholder="请输入图标名称或URL"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="comment">修改说明</Label>
-                  <Textarea
-                    id="comment"
-                    value={formData.comment}
-                    onChange={(e) => setFormData({...formData, comment: e.target.value})}
-                    placeholder="请简要说明本次修改内容"
-                    rows={2}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">流程状态信息</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>当前版本</Label>
-                    <div className="mt-1 text-lg font-semibold">v{workflow.version}</div>
-                  </div>
-                  
-                  <div>
-                    <Label>状态</Label>
-                    <div className="mt-1">
-                      <Badge className={workflow.status === 1 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
-                        {workflow.status === 1 ? '已启用' : '未启用'}
-                      </Badge>
+
+        <div className="flex-1 overflow-y-auto px-6 pb-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="basic">基本信息</TabsTrigger>
+              <TabsTrigger value="versions">版本管理</TabsTrigger>
+              <TabsTrigger value="importExport">导入导出</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="basic" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">流程基本信息</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="workflowName">流程名称</Label>
+                      <Input
+                        id="workflowName"
+                        value={formData.workflowName}
+                        onChange={(e) => setFormData({...formData, workflowName: e.target.value})}
+                        placeholder="请输入流程名称"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="workflowKey">流程关键字</Label>
+                      <Input
+                        id="workflowKey"
+                        value={formData.workflowKey}
+                        onChange={(e) => setFormData({...formData, workflowKey: e.target.value.toUpperCase()})}
+                        placeholder="请输入流程关键字"
+                        required
+                      />
                     </div>
                   </div>
-                  
-                  <div>
-                    <Label>创建时间</Label>
-                    <div className="mt-1 text-sm">{formatDate(workflow.createTime)}</div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="workflowDesc">流程描述</Label>
+                    <Textarea
+                      id="workflowDesc"
+                      value={formData.workflowDesc}
+                      onChange={(e) => setFormData({...formData, workflowDesc: e.target.value})}
+                      placeholder="请输入流程描述"
+                      rows={3}
+                    />
                   </div>
-                  
-                  <div>
-                    <Label>最后修改</Label>
-                    <div className="mt-1 text-sm">{formatDate(workflow.updateTime)}</div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="category">流程分类</Label>
+                      <Input
+                        id="category"
+                        value={formData.category}
+                        onChange={(e) => setFormData({...formData, category: e.target.value})}
+                        placeholder="请输入流程分类"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="icon">图标</Label>
+                      <Input
+                        id="icon"
+                        value={formData.icon}
+                        onChange={(e) => setFormData({...formData, icon: e.target.value})}
+                        placeholder="请输入图标名称或URL"
+                      />
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="versions" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">版本历史</CardTitle>
-                  <Button onClick={handleCreateNewVersion} size="sm">
-                    <Copy className="w-4 h-4 mr-2" />
-                    创建新版本
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="text-center py-8">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
-                    <div>加载中...</div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="comment">修改说明</Label>
+                    <Textarea
+                      id="comment"
+                      value={formData.comment}
+                      onChange={(e) => setFormData({...formData, comment: e.target.value})}
+                      placeholder="请简要说明本次修改内容"
+                      rows={2}
+                    />
                   </div>
-                ) : versions.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    暂无版本历史
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">流程状态信息</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>当前版本</Label>
+                      <div className="mt-1 text-lg font-semibold">v{workflow.version}</div>
+                    </div>
+
+                    <div>
+                      <Label>状态</Label>
+                      <div className="mt-1">
+                        <Badge className={workflow.status === 1 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+                          {workflow.status === 1 ? '已启用' : '未启用'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>创建时间</Label>
+                      <div className="mt-1 text-sm">{formatDate(workflow.createTime)}</div>
+                    </div>
+
+                    <div>
+                      <Label>最后修改</Label>
+                      <div className="mt-1 text-sm">{formatDate(workflow.updateTime)}</div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {versions.map((version) => (
-                      <div key={version.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className="flex items-center space-x-2">
-                              <Badge variant={version.id === workflow.id ? "default" : "outline"}>
-                                v{version.version}
-                              </Badge>
-                              {version.id === workflow.id && (
-                                <Badge variant="secondary">当前版本</Badge>
-                              )}
-                            </div>
-                            <div>
-                              <div className="font-medium">{version.workflowName}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {formatDate(version.createTime)}
-                                {version.comment && ` • ${version.comment}`}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="versions" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">版本历史</CardTitle>
+                    <Button onClick={handleCreateNewVersion} size="sm">
+                      <Copy className="w-4 h-4 mr-2" />
+                      创建新版本
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="text-center py-8">
+                      <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
+                      <div>加载中...</div>
+                    </div>
+                  ) : versions.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      暂无版本历史
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {versions.map((version) => (
+                        <div key={version.id} className="border rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="flex items-center space-x-2">
+                                <Badge variant={version.id === workflow.id ? "default" : "outline"}>
+                                  v{version.version}
+                                </Badge>
+                                {version.id === workflow.id && (
+                                  <Badge variant="secondary">当前版本</Badge>
+                                )}
+                              </div>
+                              <div>
+                                <div className="font-medium">{version.workflowName}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {formatDate(version.createTime)}
+                                  {version.comment && ` • ${version.comment}`}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          
-                          <div className="flex items-center space-x-2">
-                            {version.id !== workflow.id && (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleRevertToVersion(version)}
-                              >
-                                回滚到此版本
+
+                            <div className="flex items-center space-x-2">
+                              {version.id !== workflow.id && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleRevertToVersion(version)}
+                                >
+                                  回滚到此版本
+                                </Button>
+                              )}
+                              <Button variant="ghost" size="sm">
+                                <History className="w-4 h-4" />
                               </Button>
-                            )}
-                            <Button variant="ghost" size="sm">
-                              <History className="w-4 h-4" />
-                            </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="importExport" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">导出流程</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      导出当前流程的配置信息，包括基本信息、版本历史和配置数据。
+                    </p>
+                    <Button onClick={handleExportWorkflow} className="w-full">
+                      <Download className="w-4 h-4 mr-2" />
+                      导出流程配置
+                    </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="importExport" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">导出流程</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    导出当前流程的配置信息，包括基本信息、版本历史和配置数据。
-                  </p>
-                  <Button onClick={handleExportWorkflow} className="w-full">
-                    <Download className="w-4 h-4 mr-2" />
-                    导出流程配置
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">导入流程</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    导入流程配置文件，将覆盖当前流程的配置信息。
-                  </p>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                    <p className="text-sm text-gray-600 mb-2">拖拽文件到此处或点击选择文件</p>
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleImportWorkflow}
-                      className="hidden"
-                      id="import-file"
-                    />
-                    <label htmlFor="import-file">
-                      <Button variant="outline" asChild>
-                        <span>选择文件</span>
-                      </Button>
-                    </label>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">导入流程</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      导入流程配置文件，将覆盖当前流程的配置信息。
+                    </p>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm text-gray-600 mb-2">拖拽文件到此处或点击选择文件</p>
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={handleImportWorkflow}
+                        className="hidden"
+                        id="import-file"
+                      />
+                      <label htmlFor="import-file">
+                        <Button variant="outline" asChild>
+                          <span>选择文件</span>
+                        </Button>
+                      </label>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        
-        <DialogFooter>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        <DialogFooter className="px-6 pb-6 pt-4 border-t flex-shrink-0">
           <div className="flex items-center justify-between w-full">
             <div className="text-sm text-muted-foreground">
               最后修改: {formatDate(workflow.updateTime)}

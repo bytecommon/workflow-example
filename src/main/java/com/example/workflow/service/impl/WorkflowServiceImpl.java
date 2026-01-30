@@ -36,6 +36,7 @@ public class WorkflowServiceImpl implements WorkflowService {
     private final WorkflowInstanceMapper workflowInstanceMapper;
     private final WorkflowTaskMapper workflowTaskMapper;
     private final WorkflowHistoryMapper workflowHistoryMapper;
+    private final WorkflowFormMapper workflowFormMapper;
     private final WorkflowEngineService workflowEngineService;
     
     @Override
@@ -413,7 +414,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         if (instance == null) {
             throw new RuntimeException("流程实例不存在");
         }
-        
+
         InstanceDetailVO vo = new InstanceDetailVO();
         vo.setId(instance.getId());
         vo.setInstanceNo(instance.getInstanceNo());
@@ -425,10 +426,137 @@ public class WorkflowServiceImpl implements WorkflowService {
         vo.setStartTime(instance.getStartTime());
         vo.setEndTime(instance.getEndTime());
         vo.setTitle(instance.getTitle());
-        
+
         return vo;
     }
-    
+
+    @Override
+    public InstanceInfoVO getInstanceInfo(Long instanceId) {
+        WorkflowInstance instance = workflowInstanceMapper.selectById(instanceId);
+        if (instance == null) {
+            throw new RuntimeException("流程实例不存在");
+        }
+
+        // 获取当前正在处理的任务
+        WorkflowTask currentTask = workflowTaskMapper.selectOne(
+            new LambdaQueryWrapper<WorkflowTask>()
+                .eq(WorkflowTask::getInstanceId, instanceId)
+                .eq(WorkflowTask::getStatus, TaskStatus.PENDING.name())
+                .last("LIMIT 1")
+        );
+
+        InstanceInfoVO vo = new InstanceInfoVO();
+        vo.setId(instance.getId());
+        vo.setInstanceNo(instance.getInstanceNo());
+        vo.setDefinitionId(instance.getWorkflowId());
+        vo.setWorkflowName(instance.getWorkflowName());
+        vo.setStatus(instance.getStatus());
+        vo.setTitle(instance.getTitle());
+        vo.setStartUserId(instance.getStartUserId());
+        vo.setStartUserName(instance.getStartUserName());
+        vo.setStartTime(instance.getStartTime());
+        vo.setEndTime(instance.getEndTime());
+        vo.setPriority(instance.getPriority());
+
+        if (currentTask != null) {
+            vo.setCurrentNodeName(currentTask.getNodeName());
+        }
+
+        return vo;
+    }
+
+    @Override
+    public InstanceFormDataVO getInstanceFormData(Long instanceId) {
+        WorkflowInstance instance = workflowInstanceMapper.selectById(instanceId);
+        if (instance == null) {
+            throw new RuntimeException("流程实例不存在");
+        }
+
+        InstanceFormDataVO vo = new InstanceFormDataVO();
+        vo.setInstanceId(instance.getId());
+        vo.setInstanceNo(instance.getInstanceNo());
+        vo.setFormId(instance.getFormId());
+        vo.setFormData(instance.getFormData());
+
+        // 如果有关联表单，获取表单信息
+        if (instance.getFormId() != null) {
+            WorkflowForm form = workflowFormMapper.selectById(instance.getFormId());
+            if (form != null) {
+                vo.setFormName(form.getFormName());
+                vo.setFormConfig(form.getFormConfig());
+            }
+        }
+
+        return vo;
+    }
+
+    @Override
+    public InstanceGraphVO getInstanceGraph(Long instanceId) {
+        WorkflowInstance instance = workflowInstanceMapper.selectById(instanceId);
+        if (instance == null) {
+            throw new RuntimeException("流程实例不存在");
+        }
+
+        // 获取工作流定义的节点和连线
+        List<WorkflowNode> nodes = workflowNodeMapper.selectList(
+            new LambdaQueryWrapper<WorkflowNode>()
+                .eq(WorkflowNode::getWorkflowId, instance.getWorkflowId())
+        );
+
+        List<WorkflowEdge> edges = workflowEdgeMapper.selectList(
+            new LambdaQueryWrapper<WorkflowEdge>()
+                .eq(WorkflowEdge::getWorkflowId, instance.getWorkflowId())
+        );
+
+        // 获取当前任务节点
+        WorkflowTask currentTask = workflowTaskMapper.selectOne(
+            new LambdaQueryWrapper<WorkflowTask>()
+                .eq(WorkflowTask::getInstanceId, instanceId)
+                .eq(WorkflowTask::getStatus, TaskStatus.PENDING.name())
+                .last("LIMIT 1")
+        );
+
+        // 获取已完成的任务节点
+        List<WorkflowTask> completedTasks = workflowTaskMapper.selectList(
+            new LambdaQueryWrapper<WorkflowTask>()
+                .eq(WorkflowTask::getInstanceId, instanceId)
+                .eq(WorkflowTask::getStatus, TaskStatus.APPROVED.name())
+        );
+
+        InstanceGraphVO vo = new InstanceGraphVO();
+        vo.setInstanceId(instance.getId());
+        vo.setInstanceNo(instance.getInstanceNo());
+        vo.setWorkflowName(instance.getWorkflowName());
+        vo.setStatus(instance.getStatus());
+        vo.setNodes(nodes);
+        vo.setEdges(edges);
+
+        if (currentTask != null) {
+            vo.setCurrentNodeId(currentTask.getNodeId());
+        }
+
+        List<Long> completedNodeIds = completedTasks.stream()
+            .map(WorkflowTask::getNodeId)
+            .distinct()
+            .collect(Collectors.toList());
+        vo.setCompletedNodeIds(completedNodeIds);
+
+        return vo;
+    }
+
+    @Override
+    public List<TaskVO> getInstanceTasks(Long instanceId) {
+        List<WorkflowTask> tasks = workflowTaskMapper.selectList(
+            new LambdaQueryWrapper<WorkflowTask>()
+                .eq(WorkflowTask::getInstanceId, instanceId)
+                .orderByAsc(WorkflowTask::getCreateTime)
+        );
+
+        return tasks.stream()
+            .map(this::convertToTaskVO)
+            .collect(Collectors.toList());
+    }
+
     @Override
     public List<HistoryVO> getInstanceHistory(Long instanceId) {
         List<WorkflowHistory> histories = workflowHistoryMapper.selectList(
@@ -436,7 +564,7 @@ public class WorkflowServiceImpl implements WorkflowService {
                 .eq(WorkflowHistory::getInstanceId, instanceId)
                 .orderByAsc(WorkflowHistory::getOperateTime)
         );
-        
+
         return histories.stream()
             .map(this::convertToHistoryVO)
             .collect(Collectors.toList());

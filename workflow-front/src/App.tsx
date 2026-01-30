@@ -6,6 +6,8 @@ import { InstanceList } from './components/instance/InstanceList'
 import { Header } from './components/layout/Header'
 import { LoginPage } from './components/auth/LoginPage'
 import { login, isAuthenticated, getCurrentUser, initializeAuth } from './lib/auth'
+import { useToast } from './hooks/useToast'
+import { ToastContainer } from './components/ui/toast'
 
 type ActiveTab = 'dashboard' | 'workflows' | 'tasks' | 'instances'
 
@@ -13,6 +15,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const { toasts, removeToast } = useToast()
 
   // 初始化认证状态
   useEffect(() => {
@@ -61,6 +64,8 @@ function App() {
       <main className="container mx-auto px-4 py-6">
         {renderContent()}
       </main>
+
+      <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
   )
 }

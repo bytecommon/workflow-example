@@ -14,20 +14,30 @@ export interface WorkflowDefinition {
   category?: string
   formId?: number
   icon?: string
-  status: number
+  status: number  // 0-未启用, 1-已启用
   createTime: string
   updateTime: string
+  createBy?: string
+  updateBy?: string
 }
 
 export interface WorkflowInstance {
   id: number                    // 流程实例ID
   instanceNo: string            // 流程实例编号
-  workflowName: string          // 工作流名称
-  status: string                // 流程状态：RUNNING-运行中，APPROVED-已通过，REJECTED-已拒绝，CANCELED-已取消，TERMINATED-已终止
+  definitionId: number          // 流程定义ID
+  definitionName: string        // 流程定义名称
+  definitionKey: string         // 流程定义Key
+  workflowName: string          // 工作流名称（兼容字段）
   title: string                 // 流程标题
+  status: number                // 流程状态：1-运行中，2-已完成，3-已终止，4-已撤销
+  statusText?: string           // 状态文本
+  priority: number              // 优先级：0-普通，1-紧急，2-特急
   startTime: string             // 发起时间
   endTime?: string              // 结束时间
-  priority: number              // 优先级：0-普通，1-紧急，2-特急
+  starterUserId: string         // 发起人ID
+  starterUserName: string       // 发起人名称
+  currentTaskId?: number        // 当前任务ID
+  variables?: Record<string, any> // 流程变量
 }
 
 export interface WorkflowTask {
@@ -63,10 +73,85 @@ export interface WorkflowHistory {
 }
 
 export interface InstanceDetailVO {
-  instance: WorkflowInstance
-  tasks: WorkflowTask[]
-  history: WorkflowHistory[]
-  variables: Record<string, any>
+  id: number                      // 流程实例ID
+  instanceNo: string               // 流程实例编号
+  workflowName: string             // 工作流名称
+  status: string                   // 流程状态：RUNNING-运行中，APPROVED-已通过，REJECTED-已拒绝，CANCELED-已取消，TERMINATED-已终止
+  formData: string                // 表单数据（JSON格式）
+  startUserId: string              // 发起人用户ID
+  startUserName: string            // 发起人姓名
+  startTime: string                // 发起时间
+  endTime: string | null          // 结束时间
+  title: string                   // 流程标题
+}
+
+export interface InstanceInfoVO {
+  id: number                      // 流程实例ID
+  instanceNo: string               // 流程实例编号
+  definitionId: number            // 工作流ID
+  workflowName: string             // 工作流名称
+  status: string                   // 流程状态：RUNNING-运行中，APPROVED-已通过，REJECTED-已拒绝，CANCELED-已取消，TERMINATED-已终止
+  title: string                   // 流程标题
+  startUserId: string              // 发起人用户ID
+  startUserName: string            // 发起人姓名
+  startTime: string                // 发起时间
+  endTime: string | null          // 结束时间
+  priority: number                // 优先级：0-普通，1-紧急，2-特急
+  currentNodeName: string         // 当前节点名称
+}
+
+export interface InstanceFormDataVO {
+  instanceId: number              // 流程实例ID
+  instanceNo: string               // 流程实例编号
+  formId: number                  // 表单ID
+  formName: string                // 表单名称
+  formConfig: string              // 表单配置（JSON格式）
+  formData: string                // 表单数据（JSON格式）
+  dataMap: Record<string, any>    // 表单数据（解析为Map）
+}
+
+export interface InstanceGraphVO {
+  instanceId: number              // 流程实例ID
+  instanceNo: string               // 流程实例编号
+  workflowName: string             // 工作流名称
+  status: string                   // 流程状态
+  nodes: Array<{
+    id: number
+    nodeName: string
+    nodeType: string
+    positionX: number
+    positionY: number
+  }>                              // 节点列表
+  edges: Array<{
+    id: number
+    sourceNodeId: number
+    targetNodeId: number
+  }>                              // 连线列表
+  currentNodeId: number           // 当前节点ID
+  completedNodeIds: number[]      // 已完成节点ID列表
+}
+
+export interface TaskVO {
+  id: number
+  instanceId: number
+  instanceNo: string
+  workflowName: string
+  nodeName: string
+  status: string  // PENDING-待处理，APPROVED-已同意，REJECTED-已拒绝，TRANSFERRED-已转交，CANCELED-已取消
+  title: string
+  startUserName: string
+  createTime: string
+  priority: number  // 0-普通，1-紧急，2-特急
+}
+
+export interface HistoryVO {
+  id: number
+  nodeName: string
+  action: string  // START-发起，APPROVE-同意，REJECT-拒绝，TRANSFER-转交，CANCEL-撤销
+  operatorName: string
+  comment?: string
+  operateTime: string  // 操作时间（后端返回operateTime）
+  duration?: number  // 处理耗时（毫秒）
 }
 
 export interface ApiResponse<T> {
@@ -143,30 +228,50 @@ export const instanceApi = {
     pageSize?: number
     definitionName?: string
     status?: number
-  }) => 
+  }) =>
     api.get<ApiResponse<Page<WorkflowInstance>>>('/workflow/instance/my', { params }),
-  
-  // 获取流程实例详情
-  getInstanceDetail: (instanceId: number) => 
+
+  // 获取流程实例详情（基本信息+表单数据）
+  getInstanceDetail: (instanceId: number) =>
     api.get<ApiResponse<InstanceDetailVO>>(`/workflow/instance/${instanceId}`),
-  
+
+  // 获取流程实例基本信息
+  getInstanceInfo: (instanceId: number) =>
+    api.get<ApiResponse<InstanceInfoVO>>(`/workflow/instance/${instanceId}/info`),
+
+  // 获取流程实例表单数据
+  getInstanceFormData: (instanceId: number) =>
+    api.get<ApiResponse<InstanceFormDataVO>>(`/workflow/instance/${instanceId}/form`),
+
+  // 获取流程实例流程图
+  getInstanceGraph: (instanceId: number) =>
+    api.get<ApiResponse<InstanceGraphVO>>(`/workflow/instance/${instanceId}/graph`),
+
+  // 获取流程实例任务列表
+  getInstanceTasks: (instanceId: number) =>
+    api.get<ApiResponse<TaskVO[]>>(`/workflow/instance/${instanceId}/tasks`),
+
+  // 获取流程审批历史
+  getInstanceHistory: (instanceId: number) =>
+    api.get<ApiResponse<HistoryVO[]>>(`/workflow/instance/${instanceId}/history`),
+
   // 启动流程实例
   startInstance: (data: {
-    definitionId: number
-    starterUserId: string
-    variables?: Record<string, any>
-  }) => 
+    workflowId: number          // 工作流定义ID
+    startUserId: string        // 发起人用户ID
+    startUserName?: string    // 发起人姓名
+    title?: string            // 流程标题
+    businessKey?: string      // 业务键
+    priority?: number         // 优先级
+    formData?: string        // 表单数据（JSON字符串）
+  }) =>
     api.post<ApiResponse<number>>('/workflow/instance/start', data),
-  
+
   // 撤销流程
-  cancelInstance: (instanceId: number, reason: string) => 
-    api.post<ApiResponse<void>>(`/workflow/instance/${instanceId}/cancel`, null, { 
-      params: { reason } 
+  cancelInstance: (instanceId: number, reason: string) =>
+    api.post<ApiResponse<void>>(`/workflow/instance/${instanceId}/cancel`, null, {
+      params: { reason }
     }),
-  
-  // 获取流程审批历史
-  getInstanceHistory: (instanceId: number) => 
-    api.get<ApiResponse<WorkflowHistory[]>>(`/workflow/instance/${instanceId}/history`),
 }
 
 // 任务相关API
@@ -225,34 +330,47 @@ export interface Page<T> {
 // 扩展接口定义以匹配后台VO结构
 export interface WorkflowDetailVO {
   id: number
-  name: string
-  key: string
+  workflowKey: string
+  workflowName: string
   version: number
-  description?: string
+  workflowDesc?: string
+  category?: string
+  formId?: number
+  icon?: string
   status: number
   createTime: string
   updateTime: string
+  createBy?: string
+  updateBy?: string
+  // 流程图数据
   nodes?: WorkflowNodeVO[]
   edges?: WorkflowEdgeVO[]
+  // 统计信息
+  statistics?: {
+    totalInstances: number
+    runningInstances: number
+    completedInstances: number
+  }
 }
 
 export interface WorkflowNodeVO {
-  id: string
-  name: string
-  type: 'start' | 'end' | 'task' | 'approval' | 'decision' | 'parallel' | 'gateway' | 'notification' | 'script'
-  x: number
-  y: number
-  status?: 'pending' | 'active' | 'completed' | 'skipped'
-  assignees?: string[]
-  conditions?: string[]
+  id: number
+  nodeName: string
+  nodeType: string
+  positionX: number
+  positionY: number
+  config?: string
+  createTime?: string
+  updateTime?: string
 }
 
 export interface WorkflowEdgeVO {
-  id: string
-  source: string
-  target: string
-  label?: string
-  condition?: string
+  id: number
+  sourceNodeId: number
+  targetNodeId: number
+  conditionExpr?: string
+  priority?: number
+  createTime?: string
 }
 
 export interface WorkflowCcVO {
@@ -266,6 +384,48 @@ export interface WorkflowCcVO {
   status: number  // 0-未读,1-已读
   createTime: string
   readTime?: string
+}
+
+// 表单相关接口定义
+export interface FormField {
+  name: string          // 字段名称（对应fieldKey）
+  label: string         // 字段显示名称（对应fieldName）
+  type: string          // 字段类型：text, textarea, number, date, select, checkbox等
+  placeholder?: string  // 占位符
+  defaultValue?: any   // 默认值
+  required?: boolean    // 是否必填
+  options?: FormFieldOption[] | string[]  // 下拉选项（支持对象数组或字符串数组）
+  validation?: {
+    pattern?: string
+    min?: number
+    max?: number
+  }
+  description?: string  // 字段描述（对应fieldDesc）
+}
+
+export interface FormFieldOption {
+  label: string
+  value?: string  // value可以为undefined，如果是字符串数组格式
+}
+
+export interface FormDefinition {
+  id: number
+  formKey: string        // 表单唯一标识
+  formName: string      // 表单名称
+  formDesc?: string     // 表单描述
+  formConfig: string    // 表单配置（JSON字符串）
+  status: number        // 状态：0-停用，1-启用
+  createTime: string
+  updateTime: string
+  // 解析后的字段（前端使用）
+  fields?: FormField[]
+}
+
+// 表单相关API
+export const formApi = {
+  // 获取表单详情
+  getFormDetail: (formId: number) =>
+    api.get<ApiResponse<FormDefinition>>(`/form/${formId}`),
 }
 
 export default api
