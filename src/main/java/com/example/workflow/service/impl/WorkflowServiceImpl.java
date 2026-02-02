@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -37,6 +38,7 @@ public class WorkflowServiceImpl implements WorkflowService {
     private final WorkflowTaskMapper workflowTaskMapper;
     private final WorkflowHistoryMapper workflowHistoryMapper;
     private final WorkflowFormMapper workflowFormMapper;
+    private final WorkflowTemplateMapper workflowTemplateMapper;
     private final WorkflowEngineService workflowEngineService;
     
     @Override
@@ -47,11 +49,12 @@ public class WorkflowServiceImpl implements WorkflowService {
         definition.setWorkflowName(dto.getWorkflowName());
         definition.setWorkflowDesc(dto.getWorkflowDesc());
         definition.setCategory(dto.getCategory());
+        definition.setTemplateId(dto.getTemplateId());
         definition.setFormId(dto.getFormId());
         definition.setIcon(dto.getIcon());
         definition.setStatus(0); // 初始为停用状态
         definition.setVersion(1);
-        
+
         workflowDefinitionMapper.insert(definition);
         return definition.getId();
     }
@@ -63,13 +66,14 @@ public class WorkflowServiceImpl implements WorkflowService {
         if (definition == null) {
             throw new RuntimeException("工作流不存在");
         }
-        
+
         definition.setWorkflowName(dto.getWorkflowName());
         definition.setWorkflowDesc(dto.getWorkflowDesc());
         definition.setCategory(dto.getCategory());
+        definition.setTemplateId(dto.getTemplateId());
         definition.setFormId(dto.getFormId());
         definition.setIcon(dto.getIcon());
-        
+
         workflowDefinitionMapper.updateById(definition);
     }
     
@@ -159,7 +163,7 @@ public class WorkflowServiceImpl implements WorkflowService {
             new LambdaQueryWrapper<WorkflowNode>()
                 .eq(WorkflowNode::getWorkflowId, workflowId)
         );
-        
+
         // 保存节点
         if (config.getNodes() != null && !config.getNodes().isEmpty()) {
             for (WorkflowNode node : config.getNodes()) {
@@ -167,26 +171,391 @@ public class WorkflowServiceImpl implements WorkflowService {
                 workflowNodeMapper.insert(node);
             }
         }
-        
+
         // 保存连线
         workflowEdgeMapper.delete(
             new LambdaQueryWrapper<WorkflowEdge>()
                 .eq(WorkflowEdge::getWorkflowId, workflowId)
         );
-        
+
         if (config.getEdges() != null && !config.getEdges().isEmpty()) {
             for (WorkflowEdge edge : config.getEdges()) {
                 edge.setWorkflowId(workflowId);
                 workflowEdgeMapper.insert(edge);
             }
         }
-        
-        // 保存审批人配置
+
+        // 保存审批人配置（两种方式兼容）
         if (config.getApprovers() != null && !config.getApprovers().isEmpty()) {
+            // 方式1：后端直接传递的 approvers
             for (WorkflowApprover approver : config.getApprovers()) {
                 workflowApproverMapper.insert(approver);
             }
+        } else if (config.getApprovalRules() != null && !config.getApprovalRules().isEmpty()) {
+            // 方式2：前端传递的 approvalRules，需要转换
+            handleApprovalRules(workflowId, config.getApprovalRules());
         }
+
+
+        // 处理表单配置
+        if (config.getFormSchema() != null) {
+            handleFormSchema(workflowId, config.getFormSchema());
+        }
+    }
+
+    @Override
+    public WorkflowConfigDTO getWorkflowConfig(Long workflowId) {
+        // 获取流程定义
+        WorkflowDefinition definition = workflowDefinitionMapper.selectById(workflowId);
+        if (definition == null) {
+            throw new RuntimeException("流程定义不存在");
+        }
+
+        WorkflowConfigDTO config = new WorkflowConfigDTO();
+
+        // 获取并处理表单配置
+        if (definition.getFormId() != null) {
+            WorkflowForm form = workflowFormMapper.selectById(definition.getFormId());
+            if (form != null && form.getFormConfig() != null) {
+                try {
+                    com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                    com.fasterxml.jackson.databind.JsonNode configNode = objectMapper.readTree(form.getFormConfig());
+
+                    // 解析表单配置
+                    WorkflowConfigDTO.FormSchemaDTO formSchema = new WorkflowConfigDTO.FormSchemaDTO();
+
+                    // 解析基础配置
+                    if (configNode.has("config")) {
+                        com.fasterxml.jackson.databind.JsonNode configDetails = configNode.get("config");
+                        WorkflowConfigDTO.FormConfigDTO formConfigDTO = new WorkflowConfigDTO.FormConfigDTO();
+                        if (configDetails.has("title")) {
+                            formConfigDTO.setTitle(configDetails.get("title").asText());
+                        }
+                        if (configDetails.has("description")) {
+                            formConfigDTO.setDescription(configDetails.get("description").asText());
+                        }
+                        if (configDetails.has("submitText")) {
+                            formConfigDTO.setSubmitText(configDetails.get("submitText").asText());
+                        }
+                        formSchema.setConfig(formConfigDTO);
+                    }
+
+                    // 解析字段配置
+                    if (configNode.has("fields")) {
+                        com.fasterxml.jackson.databind.JsonNode fieldsNode = configNode.get("fields");
+                        java.util.List<WorkflowConfigDTO.FormFieldDTO> fields = new java.util.ArrayList<>();
+                        for (com.fasterxml.jackson.databind.JsonNode fieldNode : fieldsNode) {
+                            WorkflowConfigDTO.FormFieldDTO field = new WorkflowConfigDTO.FormFieldDTO();
+                            if (fieldNode.has("name")) {
+                                field.setName(fieldNode.get("name").asText());
+                            }
+                            if (fieldNode.has("label")) {
+                                field.setLabel(fieldNode.get("label").asText());
+                            }
+                            if (fieldNode.has("type")) {
+                                field.setType(fieldNode.get("type").asText());
+                            }
+                            if (fieldNode.has("required")) {
+                                field.setRequired(fieldNode.get("required").asBoolean());
+                            }
+                            if (fieldNode.has("options")) {
+                                java.util.List<String> options = new java.util.ArrayList<>();
+                                com.fasterxml.jackson.databind.JsonNode optionsNode = fieldNode.get("options");
+                                for (com.fasterxml.jackson.databind.JsonNode optionNode : optionsNode) {
+                                    options.add(optionNode.asText());
+                                }
+                                field.setOptions(options);
+                            }
+                            if (fieldNode.has("placeholder")) {
+                                field.setPlaceholder(fieldNode.get("placeholder").asText());
+                            }
+                            fields.add(field);
+                        }
+                        formSchema.setFields(fields);
+                    }
+
+                    config.setFormSchema(formSchema);
+                } catch (Exception e) {
+                    System.err.println("解析表单配置失败: " + e.getMessage());
+                }
+            }
+        }
+
+        // 获取并转换审批规则
+        java.util.List<WorkflowApprover> approvers = workflowApproverMapper.selectList(
+            new LambdaQueryWrapper<WorkflowApprover>()
+                .inSql(WorkflowApprover::getNodeId,
+                    "SELECT id FROM workflow_node WHERE workflow_id = " + workflowId)
+        );
+
+        if (approvers != null && !approvers.isEmpty()) {
+            // 获取节点信息，建立 nodeId 到 nodeKey 的映射
+            java.util.List<WorkflowNode> nodes = workflowNodeMapper.selectList(
+                new LambdaQueryWrapper<WorkflowNode>()
+                    .eq(WorkflowNode::getWorkflowId, workflowId)
+            );
+            java.util.Map<Long, String> nodeIdToKeyMap = new java.util.HashMap<>();
+            for (WorkflowNode node : nodes) {
+                nodeIdToKeyMap.put(node.getId(), node.getNodeKey());
+            }
+
+            // 将审批人配置转换为审批规则
+            java.util.List<WorkflowConfigDTO.ApprovalRuleDTO> approvalRules = new java.util.ArrayList<>();
+            for (WorkflowApprover approver : approvers) {
+                WorkflowConfigDTO.ApprovalRuleDTO rule = new WorkflowConfigDTO.ApprovalRuleDTO();
+                rule.setId(approver.getId());
+                rule.setNodeId(nodeIdToKeyMap.get(approver.getNodeId()));
+                rule.setNodeName("节点" + approver.getNodeId());
+
+                // 根据 approveMode 确定 ruleType
+                String approveMode = approver.getApproveMode();
+                if ("AND".equals(approveMode)) {
+                    rule.setRuleType("multi");
+                } else if ("SEQUENTIAL".equals(approveMode)) {
+                    rule.setRuleType("sequential");
+                } else {
+                    rule.setRuleType("single");
+                }
+
+                // 解析审批人
+                if (approver.getApproverValue() != null && !approver.getApproverValue().isEmpty()) {
+                    String[] approverArray = approver.getApproverValue().split(",");
+                    rule.setApprovers(java.util.Arrays.asList(approverArray));
+                }
+
+                approvalRules.add(rule);
+            }
+            config.setApprovalRules(approvalRules);
+        }
+
+        return config;
+    }
+
+    /**
+     * 处理审批规则，转换为后端的审批人配置
+     */
+    private void handleApprovalRules(Long workflowId, java.util.List<WorkflowConfigDTO.ApprovalRuleDTO> approvalRules) {
+        // 先获取流程中所有节点，建立 nodeKey 到 nodeId 的映射
+        java.util.List<WorkflowNode> nodes = workflowNodeMapper.selectList(
+            new LambdaQueryWrapper<WorkflowNode>()
+                .eq(WorkflowNode::getWorkflowId, workflowId)
+        );
+        java.util.Map<String, Long> nodeKeyToIdMap = new java.util.HashMap<>();
+        for (WorkflowNode node : nodes) {
+            nodeKeyToIdMap.put(node.getNodeKey(), node.getId());
+        }
+
+        for (WorkflowConfigDTO.ApprovalRuleDTO rule : approvalRules) {
+            // 根据 ruleType 确定 approveMode
+            String approveMode = "OR";  // 默认
+            if ("multi".equals(rule.getRuleType())) {
+                approveMode = "AND";  // 会签
+            } else if ("sequential".equals(rule.getRuleType())) {
+                approveMode = "SEQUENTIAL";  // 顺序审批
+            }
+
+            // 确定审批人类型
+            String approverType = "USER";  // 默认
+            String approverValue = "";
+
+            // 如果有多个审批人，使用多选方式
+            if (rule.getApprovers() != null && !rule.getApprovers().isEmpty()) {
+                if (rule.getApprovers().size() == 1) {
+                    // 单个审批人
+                    approverType = "USER";
+                    approverValue = rule.getApprovers().get(0);
+                } else {
+                    // 多个审批人
+                    approverType = "USER";
+                    // 将多个审批人拼接成一个字符串，用逗号分隔
+                    approverValue = String.join(",", rule.getApprovers());
+                }
+            }
+
+            // 查找对应的节点ID
+            Long nodeId = nodeKeyToIdMap.get(rule.getNodeId());
+            if (nodeId == null) {
+                // 如果找不到节点，跳过这个审批规则
+                System.err.println("找不到节点: " + rule.getNodeId());
+                continue;
+            }
+
+            // 创建审批人配置
+            WorkflowApprover approver = new WorkflowApprover();
+            approver.setNodeId(nodeId);
+            approver.setApproverType(approverType);
+            approver.setApproverValue(approverValue);
+            approver.setApproveMode(approveMode);
+            approver.setNobodyHandler("AUTO_PASS");  // 默认自动通过
+
+            workflowApproverMapper.insert(approver);
+        }
+    }
+
+    /**
+     * 处理表单配置，创建或更新表单
+     */
+    private void handleFormSchema(Long workflowId, WorkflowConfigDTO.FormSchemaDTO formSchema) {
+        try {
+            // 获取流程定义
+            WorkflowDefinition definition = workflowDefinitionMapper.selectById(workflowId);
+            if (definition == null) {
+                throw new RuntimeException("流程定义不存在");
+            }
+
+            // 如果流程定义有关联表单，更新它；否则创建新表单
+            Long formId = definition.getFormId();
+            WorkflowForm form;
+
+            if (formId != null) {
+                // 更新现有表单
+                form = workflowFormMapper.selectById(formId);
+                if (form == null) {
+                    // 表单不存在，创建新的
+                    form = new WorkflowForm();
+                    form.setFormKey(generateFormKey(definition.getWorkflowName()));
+                }
+            } else {
+                // 创建新表单
+                form = new WorkflowForm();
+                form.setFormKey(generateFormKey(definition.getWorkflowName()));
+            }
+
+            // 设置表单基础信息
+            form.setFormName(formSchema.getConfig() != null ? formSchema.getConfig().getTitle() : definition.getWorkflowName() + "表单");
+            form.setFormDesc(formSchema.getConfig() != null ? formSchema.getConfig().getDescription() : null);
+            form.setStatus(1);
+
+            // 构建表单配置JSON，只保存需要的字段
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.node.ObjectNode configNode = objectMapper.createObjectNode();
+
+            // 保存配置信息
+            if (formSchema.getConfig() != null) {
+                com.fasterxml.jackson.databind.node.ObjectNode configDetails = objectMapper.createObjectNode();
+                configDetails.put("title", formSchema.getConfig().getTitle());
+                configDetails.put("description", formSchema.getConfig().getDescription());
+                configDetails.put("submitText", formSchema.getConfig().getSubmitText());
+                configNode.set("config", configDetails);
+            }
+
+            // 保存字段信息
+            if (formSchema.getFields() != null) {
+                com.fasterxml.jackson.databind.node.ArrayNode fieldsNode = objectMapper.createArrayNode();
+                for (WorkflowConfigDTO.FormFieldDTO field : formSchema.getFields()) {
+                    com.fasterxml.jackson.databind.node.ObjectNode fieldNode = objectMapper.createObjectNode();
+
+                    // 确定字段标识（name）和标签（label）
+                    String fieldName;  // 字段标识
+                    String fieldLabel;  // 字段标签
+
+                    if (field.getFieldName() != null && !field.getFieldName().isEmpty()) {
+                        // 如果有明确的 fieldName，使用它
+                        fieldName = field.getFieldName();
+                        fieldLabel = field.getName();
+                    } else {
+                        // 否则，name 就是标签，需要生成字段标识
+                        fieldLabel = field.getName();
+                        fieldName = generateFieldNameFromLabel(field.getName());
+                    }
+
+                    fieldNode.put("name", fieldName);
+                    fieldNode.put("label", fieldLabel);
+                    fieldNode.put("type", field.getType());
+                    fieldNode.put("required", field.getRequired());
+                    if (field.getOptions() != null) {
+                        com.fasterxml.jackson.databind.node.ArrayNode optionsNode = objectMapper.createArrayNode();
+                        for (String option : field.getOptions()) {
+                            optionsNode.add(option);
+                        }
+                        fieldNode.set("options", optionsNode);
+                    }
+                    if (field.getPlaceholder() != null) {
+                        fieldNode.put("placeholder", field.getPlaceholder());
+                    }
+                    fieldsNode.add(fieldNode);
+                }
+                configNode.set("fields", fieldsNode);
+            }
+
+            String formConfigJson = objectMapper.writeValueAsString(configNode);
+            form.setFormConfig(formConfigJson);
+
+            // 保存表单
+            if (formId != null) {
+                workflowFormMapper.updateById(form);
+            } else {
+                workflowFormMapper.insert(form);
+                // 更新流程定义的表单ID
+                definition.setFormId(form.getId());
+                workflowDefinitionMapper.updateById(definition);
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("保存表单配置失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 根据流程名称生成表单key
+     */
+    private String generateFormKey(String workflowName) {
+        if (workflowName == null || workflowName.isEmpty()) {
+            return "custom_form_" + System.currentTimeMillis();
+        }
+        // 将中文转换为拼音或直接使用英文，这里简化处理
+        return workflowName.replaceAll("[\\s\\p{P}\\p{Z}\\p{C}]", "_")
+                .replaceAll("_+", "_")
+                .replaceAll("^_|_$", "")
+                .toLowerCase() + "_form";
+    }
+
+    /**
+     * 根据字段标签生成字段标识
+     */
+    private String generateFieldNameFromLabel(String label) {
+        if (label == null || label.isEmpty()) {
+            return "field_" + System.currentTimeMillis();
+        }
+
+        // 常见字段映射
+        java.util.Map<String, String> fieldMapping = new java.util.HashMap<>();
+        fieldMapping.put("标题", "title");
+        fieldMapping.put("描述", "description");
+        fieldMapping.put("优先级", "priority");
+        fieldMapping.put("名称", "name");
+        fieldMapping.put("数量", "quantity");
+        fieldMapping.put("金额", "amount");
+        fieldMapping.put("类型", "type");
+        fieldMapping.put("日期", "date");
+        fieldMapping.put("开始日期", "startDate");
+        fieldMapping.put("结束日期", "endDate");
+        fieldMapping.put("天数", "days");
+        fieldMapping.put("原因", "reason");
+        fieldMapping.put("供应商", "supplier");
+        fieldMapping.put("物品名称", "itemName");
+        fieldMapping.put("费用类型", "expenseType");
+        fieldMapping.put("费用说明", "explanation");
+        fieldMapping.put("出差类型", "tripType");
+        fieldMapping.put("出差地点", "destination");
+        fieldMapping.put("预算", "budget");
+        fieldMapping.put("印章类型", "sealType");
+        fieldMapping.put("文件名称", "docName");
+        fieldMapping.put("文件份数", "docCount");
+        fieldMapping.put("用印事由", "usage");
+        fieldMapping.put("请假类型", "leaveType");
+        fieldMapping.put("请假天数", "leaveDays");
+
+        // 如果有映射，使用映射值
+        if (fieldMapping.containsKey(label)) {
+            return fieldMapping.get(label);
+        }
+
+        // 否则，移除特殊字符，转换为小写，添加 _field 后缀
+        return label.replaceAll("[^a-zA-Z0-9\\u4e00-\\u9fa5]", "_")
+                .replaceAll("_+", "_")
+                .replaceAll("^_|_$", "")
+                .toLowerCase() + "_field";
     }
     
     @Override
@@ -484,6 +853,21 @@ public class WorkflowServiceImpl implements WorkflowService {
             if (form != null) {
                 vo.setFormName(form.getFormName());
                 vo.setFormConfig(form.getFormConfig());
+                
+                // 解析表单数据为Map
+                if (instance.getFormData() != null && !instance.getFormData().isEmpty()) {
+                    try {
+                        com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                        Map<String, Object> dataMap = objectMapper.readValue(
+                            instance.getFormData(),
+                            new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {}
+                        );
+                        vo.setDataMap(dataMap);
+                    } catch (Exception e) {
+                        // 解析失败，不设置dataMap，前端会尝试解析formData
+                        System.err.println("解析表单数据失败: " + e.getMessage());
+                    }
+                }
             }
         }
 
@@ -687,6 +1071,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         vo.setWorkflowName(definition.getWorkflowName());
         vo.setWorkflowDesc(definition.getWorkflowDesc());
         vo.setCategory(definition.getCategory());
+        vo.setTemplateId(definition.getTemplateId());
         vo.setVersion(definition.getVersion());
         vo.setStatus(definition.getStatus());
         vo.setFormId(definition.getFormId());
@@ -696,6 +1081,15 @@ public class WorkflowServiceImpl implements WorkflowService {
         vo.setCreateTime(definition.getCreateTime());
         vo.setUpdateBy(definition.getUpdateBy());
         vo.setUpdateTime(definition.getUpdateTime());
+
+        // 查询模板名称
+        if (definition.getTemplateId() != null) {
+            com.example.workflow.entity.WorkflowTemplate template = workflowTemplateMapper.selectById(definition.getTemplateId());
+            if (template != null) {
+                vo.setTemplateName(template.getTemplateName());
+            }
+        }
+
         return vo;
     }
 }

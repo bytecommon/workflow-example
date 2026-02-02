@@ -20,6 +20,7 @@ interface StartWorkflowDialogProps {
 }
 
 export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser }: StartWorkflowDialogProps) {
+  const toast = useToast()
   const [workflows, setWorkflows] = useState<WorkflowDefinition[]>([])
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>('')
   const [workflowDetail, setWorkflowDetail] = useState<WorkflowDetailVO | null>(null)
@@ -32,7 +33,78 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
   const [submitting, setSubmitting] = useState(false)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [titleError, setTitleError] = useState('')
-  const { success: showSuccess, error: showError } = useToast()
+
+  // 表单字段提示映射
+  const getFieldPlaceholder = (field: FormField): string => {
+    // 如果字段已有 placeholder，优先使用
+    if (field.placeholder && field.placeholder.trim() !== '') {
+      return field.placeholder
+    }
+
+    // 根据字段标签匹配预设的提示
+    const label = field.label || field.name || ''
+
+    // 常见字段的默认提示
+    const placeholderMap: Record<string, string> = {
+      '请假类型': '请选择：病假、事假、年假、调休',
+      '请假天数': '请输入请假天数，如：3',
+      '开始日期': '请选择开始日期',
+      '结束日期': '请选择结束日期',
+      '请假原因': '请详细说明请假原因',
+      '理由': '请填写申请理由',
+      '原因': '请填写申请原因',
+      '物品名称': '请输入物品名称，如：办公桌椅',
+      '数量': '请输入数量',
+      '金额': '请输入金额（元），如：5000',
+      '供应商': '请输入供应商名称',
+      '预算': '请输入预算金额',
+      '费用类型': '请选择：差旅费、招待费、办公费等',
+      '费用说明': '请详细说明费用用途',
+      '报销金额': '请输入报销金额（元）',
+      '费用日期': '请选择费用发生日期',
+      '出差类型': '请选择：国内出差、国外出差',
+      '出差地点': '请输入出差目的地，如：北京',
+      '出差天数': '请输入出差天数',
+      '印章类型': '请选择：公章、合同章、财务章、法人章',
+      '文件名称': '请输入文件名称',
+      '文件份数': '请输入文件份数',
+      '用印事由': '请详细说明用印事由',
+      '申请标题': '请输入申请标题',
+      '申请内容': '请详细描述申请内容',
+      '备注': '请填写备注信息（可选）',
+      '说明': '请填写说明信息',
+      '标题': '请输入标题',
+      '描述': '请输入描述内容'
+    }
+
+    // 完全匹配
+    if (placeholderMap[label]) {
+      return placeholderMap[label]
+    }
+
+    // 部分匹配
+    for (const key in placeholderMap) {
+      if (label.includes(key)) {
+        return placeholderMap[key]
+      }
+    }
+
+    // 根据字段类型生成默认提示
+    switch (field.type) {
+      case 'text':
+        return `请输入${field.label || field.name}`
+      case 'number':
+        return `请输入${field.label || field.name}（数字）`
+      case 'date':
+        return `请选择${field.label || field.name}`
+      case 'select':
+        return '请选择'
+      case 'textarea':
+        return `请详细说明${field.label || field.name}`
+      default:
+        return `请输入${field.label || field.name}`
+    }
+  }
 
   // 加载已发布的流程列表
   useEffect(() => {
@@ -286,6 +358,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
   const renderFormField = (field: FormField) => {
     const value = formData[field.name]
     const error = formErrors[field.name]
+    const placeholder = getFieldPlaceholder(field)  // 使用智能提示
 
     switch (field.type) {
       case 'textarea':
@@ -294,7 +367,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
             <Label htmlFor={field.name}>{field.label}{field.required && <span className="text-red-500 ml-1">*</span>}</Label>
             <Textarea
               id={field.name}
-              placeholder={field.placeholder}
+              placeholder={placeholder}
               value={value || ''}
               onChange={(e) => handleInputChange(field.name, e.target.value)}
               className={error ? 'border-red-500 focus:ring-red-500' : ''}
@@ -311,7 +384,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
               onValueChange={(val: string) => handleInputChange(field.name, val)}
             >
               <SelectTrigger className={error ? 'border-red-500 focus:ring-red-500' : ''}>
-                <SelectValue placeholder={field.placeholder || '请选择'} />
+                <SelectValue placeholder={placeholder} />
               </SelectTrigger>
               <SelectContent>
                 {field.options?.map((opt: any) => {
@@ -345,7 +418,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
             <Input
               id={field.name}
               type="number"
-              placeholder={field.placeholder}
+              placeholder={placeholder}
               value={value === undefined ? '' : value}
               onChange={(e) => handleInputChange(field.name, parseFloat(e.target.value))}
               className={error ? 'border-red-500 focus:ring-red-500' : ''}
@@ -360,6 +433,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
             <Input
               id={field.name}
               type="date"
+              placeholder={placeholder}
               value={value || ''}
               onChange={(e) => handleInputChange(field.name, e.target.value)}
               className={error ? 'border-red-500 focus:ring-red-500' : ''}
@@ -374,7 +448,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
             <Input
               id={field.name}
               type="text"
-              placeholder={field.placeholder}
+              placeholder={placeholder}
               value={value || ''}
               onChange={(e) => handleInputChange(field.name, e.target.value)}
               className={error ? 'border-red-500 focus:ring-red-500' : ''}
@@ -387,31 +461,34 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0 overflow-hidden flex flex-col">
+        {/* 固定的标题部分 */}
+        <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
             发起新流程
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* 选择流程 */}
-          <div className="space-y-2">
-            <Label>选择工作流</Label>
-            <Select value={selectedWorkflowId} onValueChange={setSelectedWorkflowId}>
-              <SelectTrigger>
-                <SelectValue placeholder={loading ? '加载中...' : '请选择要发起的工作流'} />
-              </SelectTrigger>
-              <SelectContent>
-                {workflows.map((wf) => (
-                  <SelectItem key={wf.id} value={wf.id.toString()}>
-                    {wf.workflowName} (v{wf.version})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* 可滚动的内容区域 */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="space-y-6">
+            {/* 选择流程 */}
+            <div className="space-y-2">
+              <Label>选择工作流</Label>
+              <Select value={selectedWorkflowId} onValueChange={setSelectedWorkflowId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={loading ? '加载中...' : '请选择要发起的工作流'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {workflows.map((wf) => (
+                    <SelectItem key={wf.id} value={wf.id.toString()}>
+                      {wf.workflowName} (v{wf.version})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
           {selectedWorkflowId && (
             <>
@@ -481,28 +558,30 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
             </>
           )}
         </div>
+      </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            取消
-          </Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={!selectedWorkflowId || submitting || loadingForm}
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                提交中...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                立即发起
-              </>
-            )}
-          </Button>
-        </DialogFooter>
+      {/* 固定的底部按钮 */}
+      <DialogFooter className="px-6 py-4 border-t gap-2 sm:gap-0">
+        <Button variant="outline" onClick={() => onOpenChange(false)}>
+          取消
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={!selectedWorkflowId || submitting || loadingForm}
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              提交中...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              立即发起
+            </>
+          )}
+        </Button>
+      </DialogFooter>
       </DialogContent>
     </Dialog>
   )

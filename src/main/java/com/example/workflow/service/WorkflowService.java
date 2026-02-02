@@ -40,7 +40,12 @@ public interface WorkflowService {
      * 保存工作流配置（节点、连线、审批人）
      */
     void saveWorkflowConfig(Long workflowId, WorkflowConfigDTO config);
-    
+
+    /**
+     * 获取工作流配置（表单配置和审批规则）
+     */
+    WorkflowConfigDTO getWorkflowConfig(Long workflowId);
+
     /**
      * 启动工作流
      */

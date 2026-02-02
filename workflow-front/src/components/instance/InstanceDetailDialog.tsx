@@ -180,59 +180,85 @@ export function InstanceDetailDialog({ open, onOpenChange, instance }: InstanceD
     </div>
   )
 
-  const renderForm = () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold flex items-center mb-4">
-          <FileText className="w-5 h-5 mr-2" />
-          表单数据
-        </h3>
-        {loading ? (
-          <div className="text-center py-8 text-muted-foreground">加载中...</div>
-        ) : instanceFormData ? (
-          <div>
-            <div className="mb-4">
-              <span className="text-sm text-muted-foreground">表单名称:</span>
-              <div className="font-medium">{instanceFormData.formName}</div>
+  const renderForm = () => {
+    // 解析表单配置，获取字段标签映射
+    const fieldLabels: Record<string, string> = {}
+    if (instanceFormData?.formConfig) {
+      try {
+        const config = typeof instanceFormData.formConfig === 'string'
+          ? JSON.parse(instanceFormData.formConfig)
+          : instanceFormData.formConfig
+
+        if (config.fields && Array.isArray(config.fields)) {
+          config.fields.forEach((field: any) => {
+            if (field.name && field.label) {
+              fieldLabels[field.name] = field.label
+            }
+          })
+        }
+      } catch (e) {
+        console.error('解析formConfig失败:', e)
+      }
+    }
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-semibold flex items-center mb-4">
+            <FileText className="w-5 h-5 mr-2" />
+            表单数据
+          </h3>
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">加载中...</div>
+          ) : instanceFormData ? (
+            <div>
+              <div className="mb-4">
+                <span className="text-sm text-muted-foreground">表单名称:</span>
+                <div className="font-medium">{instanceFormData.formName}</div>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-4">
+                {instanceFormData.dataMap ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Object.entries(instanceFormData.dataMap).map(([key, value]) => (
+                      <div key={key} className="space-y-1">
+                        <span className="text-sm text-muted-foreground">
+                          {fieldLabels[key] || key}:
+                        </span>
+                        <div className="font-medium">{String(value)}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : instanceFormData.formData ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(() => {
+                      try {
+                        const formData = JSON.parse(instanceFormData.formData)
+                        return Object.entries(formData).map(([key, value]) => (
+                          <div key={key} className="space-y-1">
+                            <span className="text-sm text-muted-foreground">
+                              {fieldLabels[key] || key}:
+                            </span>
+                            <div className="font-medium">{String(value)}</div>
+                          </div>
+                        ))
+                      } catch (e) {
+                        console.error('解析formData失败:', e)
+                        return <div className="text-red-500">表单数据解析失败</div>
+                      }
+                    })()}
+                  </div>
+                ) : (
+                  <div className="text-center text-muted-foreground">暂无表单数据</div>
+                )}
+              </div>
             </div>
-            <div className="bg-muted/50 rounded-lg p-4">
-              {instanceFormData.dataMap ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.entries(instanceFormData.dataMap).map(([key, value]) => (
-                    <div key={key} className="space-y-1">
-                      <span className="text-sm text-muted-foreground">{key}:</span>
-                      <div className="font-medium">{String(value)}</div>
-                    </div>
-                  ))}
-                </div>
-              ) : instanceFormData.formData ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(() => {
-                    try {
-                      const formData = JSON.parse(instanceFormData.formData)
-                      return Object.entries(formData).map(([key, value]) => (
-                        <div key={key} className="space-y-1">
-                          <span className="text-sm text-muted-foreground">{key}:</span>
-                          <div className="font-medium">{String(value)}</div>
-                        </div>
-                      ))
-                    } catch (e) {
-                      console.error('解析formData失败:', e)
-                      return <div className="text-red-500">表单数据解析失败</div>
-                    }
-                  })()}
-                </div>
-              ) : (
-                <div className="text-center text-muted-foreground">暂无表单数据</div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">暂无表单数据</div>
-        )}
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">暂无表单数据</div>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   const renderGraph = () => (
     <div className="space-y-6">

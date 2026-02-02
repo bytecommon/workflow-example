@@ -181,3 +181,62 @@ CREATE TABLE IF NOT EXISTS workflow_variable (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uk_instance_key ON workflow_variable(instance_id, var_key);
+
+-- ====================================
+-- 流程模板管理数据库表结构
+-- ====================================
+
+-- 1. 流程模板表
+CREATE TABLE IF NOT EXISTS workflow_template (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    template_key VARCHAR(100) NOT NULL UNIQUE COMMENT '模板唯一标识',
+    template_name VARCHAR(200) NOT NULL COMMENT '模板名称',
+    template_desc VARCHAR(500) COMMENT '模板描述',
+    category VARCHAR(50) COMMENT '分类',
+    version INT DEFAULT 1 COMMENT '版本号',
+    status TINYINT DEFAULT 1 COMMENT '状态：0-停用，1-启用',
+    icon VARCHAR(200) COMMENT '图标',
+    sort_order INT DEFAULT 0 COMMENT '排序',
+    create_by VARCHAR(64) COMMENT '创建人',
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_by VARCHAR(64) COMMENT '更新人',
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted TINYINT DEFAULT 0 COMMENT '删除标记：0-未删除，1-已删除'
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_template_key_version ON workflow_template(template_key, version);
+
+-- 2. 流程模板节点表
+CREATE TABLE IF NOT EXISTS workflow_template_node (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    template_id BIGINT NOT NULL COMMENT '模板ID',
+    node_key VARCHAR(100) NOT NULL COMMENT '节点唯一标识',
+    node_name VARCHAR(200) NOT NULL COMMENT '节点名称',
+    node_type VARCHAR(50) NOT NULL COMMENT '节点类型：START-开始，APPROVE-审批，CC-抄送，CONDITION-条件，END-结束',
+    position_x INT COMMENT 'X坐标',
+    position_y INT COMMENT 'Y坐标',
+    config TEXT COMMENT '节点配置JSON',
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+);
+
+CREATE INDEX IF NOT EXISTS idx_template_id ON workflow_template_node(template_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_template_node_key ON workflow_template_node(template_id, node_key);
+
+-- 3. 流程模板连线表
+CREATE TABLE IF NOT EXISTS workflow_template_edge (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    template_id BIGINT NOT NULL COMMENT '模板ID',
+    source_node_id BIGINT NOT NULL COMMENT '源节点ID',
+    target_node_id BIGINT NOT NULL COMMENT '目标节点ID',
+    condition_expr TEXT COMMENT '条件表达式',
+    priority INT DEFAULT 0 COMMENT '优先级',
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+);
+
+CREATE INDEX IF NOT EXISTS idx_template_edge_id ON workflow_template_edge(template_id);
+CREATE INDEX IF NOT EXISTS idx_template_source_node ON workflow_template_edge(source_node_id);
+
+-- 4. 修改工作流定义表，添加模板关联字段
+ALTER TABLE workflow_definition ADD COLUMN IF NOT EXISTS template_id BIGINT COMMENT '关联模板ID';
+CREATE INDEX IF NOT EXISTS idx_template_id ON workflow_definition(template_id);

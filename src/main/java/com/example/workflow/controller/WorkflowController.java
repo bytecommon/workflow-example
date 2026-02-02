@@ -69,12 +69,19 @@ public class WorkflowController {
     
     @Operation(summary = "保存工作流配置")
     @PostMapping("/definition/{id}/config")
-    public Result<Void> saveConfig(@PathVariable Long id, 
+    public Result<Void> saveConfig(@PathVariable Long id,
                                    @Valid @RequestBody WorkflowConfigDTO config) {
         workflowService.saveWorkflowConfig(id, config);
         return Result.success();
     }
-    
+
+    @Operation(summary = "获取工作流配置")
+    @GetMapping("/definition/{id}/config")
+    public Result<WorkflowConfigDTO> getConfig(@PathVariable Long id) {
+        WorkflowConfigDTO config = workflowService.getWorkflowConfig(id);
+        return Result.success(config);
+    }
+
     @Operation(summary = "启动工作流")
     @PostMapping("/instance/start")
     public Result<Long> startWorkflow(@Valid @RequestBody WorkflowStartDTO dto) {

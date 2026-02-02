@@ -310,3 +310,96 @@ INSERT INTO workflow_variable (instance_id, var_key, var_value, var_type) VALUES
 
 -- 提交事务
 COMMIT;
+
+-- ====================================
+-- 流程模板测试数据
+-- ====================================
+
+-- 1. 插入流程模板
+INSERT INTO workflow_template (id, template_key, template_name, template_desc, category, version, status, icon, sort_order, create_by) VALUES
+(1, 'simple_approve', '简单审批流程', '适用于简单的单级审批流程', '通用', 1, 1, 'check-circle', 1, 'admin'),
+(2, 'multi_approve', '多级审批流程', '适用于需要多级审批的流程', '通用', 1, 1, 'layers', 2, 'admin'),
+(3, 'sequential_approve', '顺序审批流程', '适用于依次审批的流程', '通用', 1, 1, 'arrow-right', 3, 'admin'),
+(4, 'parallel_approve', '并行审批流程', '适用于需要多人同时审批的流程', '通用', 1, 1, 'git-branch', 4, 'admin'),
+(5, 'conditional_approve', '条件审批流程', '适用于根据条件走不同分支的流程', '通用', 1, 1, 'git-commit', 5, 'admin');
+
+-- 2. 插入简单审批流程模板的节点
+INSERT INTO workflow_template_node (id, template_id, node_key, node_name, node_type, position_x, position_y, config) VALUES
+(1, 1, 'start', '开始', 'START', 200, 100, NULL),
+(2, 1, 'approve', '审批', 'APPROVE', 400, 100, NULL),
+(3, 1, 'end', '结束', 'END', 600, 100, NULL);
+
+-- 3. 插入简单审批流程模板的连线
+INSERT INTO workflow_template_edge (id, template_id, source_node_id, target_node_id, condition_expr, priority) VALUES
+(1, 1, 1, 2, NULL, 0),
+(2, 1, 2, 3, NULL, 0);
+
+-- 4. 插入多级审批流程模板的节点
+INSERT INTO workflow_template_node (id, template_id, node_key, node_name, node_type, position_x, position_y, config) VALUES
+(4, 2, 'start', '开始', 'START', 100, 200, NULL),
+(5, 2, 'first_approve', '一级审批', 'APPROVE', 300, 200, NULL),
+(6, 2, 'second_approve', '二级审批', 'APPROVE', 500, 200, NULL),
+(7, 2, 'third_approve', '三级审批', 'APPROVE', 700, 200, NULL),
+(8, 2, 'end', '结束', 'END', 900, 200, NULL);
+
+-- 5. 插入多级审批流程模板的连线
+INSERT INTO workflow_template_edge (id, template_id, source_node_id, target_node_id, condition_expr, priority) VALUES
+(3, 2, 4, 5, NULL, 0),
+(4, 2, 5, 6, NULL, 0),
+(5, 2, 6, 7, NULL, 0),
+(6, 2, 7, 8, NULL, 0);
+
+-- 6. 插入顺序审批流程模板的节点
+INSERT INTO workflow_template_node (id, template_id, node_key, node_name, node_type, position_x, position_y, config) VALUES
+(9, 3, 'start', '开始', 'START', 100, 200, NULL),
+(10, 3, 'approve_1', '审批人1', 'APPROVE', 300, 200, NULL),
+(11, 3, 'approve_2', '审批人2', 'APPROVE', 500, 200, NULL),
+(12, 3, 'approve_3', '审批人3', 'APPROVE', 700, 200, NULL),
+(13, 3, 'end', '结束', 'END', 900, 200, NULL);
+
+-- 7. 插入顺序审批流程模板的连线
+INSERT INTO workflow_template_edge (id, template_id, source_node_id, target_node_id, condition_expr, priority) VALUES
+(7, 3, 9, 10, NULL, 0),
+(8, 3, 10, 11, NULL, 0),
+(9, 3, 11, 12, NULL, 0),
+(10, 3, 12, 13, NULL, 0);
+
+-- 8. 插入并行审批流程模板的节点
+INSERT INTO workflow_template_node (id, template_id, node_key, node_name, node_type, position_x, position_y, config) VALUES
+(14, 4, 'start', '开始', 'START', 100, 200, NULL),
+(15, 4, 'parallel_node', '并行节点', 'APPROVE', 300, 200, NULL),
+(16, 4, 'approve_1', '审批人1', 'APPROVE', 500, 100, NULL),
+(17, 4, 'approve_2', '审批人2', 'APPROVE', 500, 200, NULL),
+(18, 4, 'approve_3', '审批人3', 'APPROVE', 500, 300, NULL),
+(19, 4, 'end', '结束', 'END', 700, 200, NULL);
+
+-- 9. 插入并行审批流程模板的连线
+INSERT INTO workflow_template_edge (id, template_id, source_node_id, target_node_id, condition_expr, priority) VALUES
+(11, 4, 14, 15, NULL, 0),
+(12, 4, 15, 16, NULL, 0),
+(13, 4, 15, 17, NULL, 0),
+(14, 4, 15, 18, NULL, 0),
+(15, 4, 16, 19, NULL, 0),
+(16, 4, 17, 19, NULL, 0),
+(17, 4, 18, 19, NULL, 0);
+
+-- 10. 插入条件审批流程模板的节点
+INSERT INTO workflow_template_node (id, template_id, node_key, node_name, node_type, position_x, position_y, config) VALUES
+(20, 5, 'start', '开始', 'START', 100, 200, NULL),
+(21, 5, 'first_approve', '一级审批', 'APPROVE', 300, 200, NULL),
+(22, 5, 'condition', '条件判断', 'CONDITION', 500, 200, NULL),
+(23, 5, 'approve_low', '低金额审批', 'APPROVE', 650, 100, NULL),
+(24, 5, 'approve_high', '高金额审批', 'APPROVE', 650, 300, NULL),
+(25, 5, 'end', '结束', 'END', 850, 200, NULL);
+
+-- 11. 插入条件审批流程模板的连线
+INSERT INTO workflow_template_edge (id, template_id, source_node_id, target_node_id, condition_expr, priority) VALUES
+(18, 5, 20, 21, NULL, 0),
+(19, 5, 21, 22, NULL, 0),
+(20, 5, 22, 23, '${amount < 10000}', 1),
+(21, 5, 22, 24, '${amount >= 10000}', 2),
+(22, 5, 23, 25, NULL, 0),
+(23, 5, 24, 25, NULL, 0);
+
+-- 提交事务
+COMMIT;

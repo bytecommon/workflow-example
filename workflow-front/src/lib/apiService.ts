@@ -1,4 +1,4 @@
-import { workflowApi, instanceApi, taskApi, ccApi, formApi, type Page, type WorkflowDefinition, type WorkflowInstance, type WorkflowTask, type WorkflowCcVO } from './api'
+import { workflowApi, templateApi, instanceApi, taskApi, ccApi, formApi, type Page, type WorkflowDefinition, type WorkflowTemplate, type WorkflowInstance, type WorkflowTask, type WorkflowCcVO } from './api'
 import { mockApi } from './mock'
 
 // 1. 基础配置与辅助函数
@@ -67,6 +67,15 @@ export const workflowService = {
       return { code: 200, message: '删除成功', data: response.data.data }
     } catch (error) {
       return { code: 500, message: '删除失败', data: false }
+    }
+  },
+  async getConfig(id: number) {
+    if (useMock) return mockApi.getConfig(id)
+    try {
+      const response = await workflowApi.getConfig(id)
+      return { code: 200, message: '成功', data: response.data.data }
+    } catch (error) {
+      return { code: 500, message: '获取配置失败', data: null }
     }
   },
   async saveConfig(id: number, config: any) {
@@ -228,6 +237,89 @@ export const formService = {
   }
 }
 
+export const templateService = {
+  async getTemplates(params?: any) {
+    if (useMock) return { code: 200, message: '成功', data: emptyPage<WorkflowTemplate>() }
+    try {
+      const response = await templateApi.getTemplates(params)
+      return { code: 200, message: '成功', data: response.data.data }
+    } catch (error) {
+      console.error('获取模板列表失败:', error)
+      return { code: 500, message: '获取失败', data: emptyPage<WorkflowTemplate>() }
+    }
+  },
+  async getTemplateDetail(id: number) {
+    if (useMock) return { code: 200, message: '成功', data: null }
+    try {
+      const response = await templateApi.getTemplateDetail(id)
+      return { code: 200, message: '成功', data: response.data.data }
+    } catch (error) {
+      console.error('获取模板详情失败:', error)
+      return { code: 500, message: '获取失败', data: null }
+    }
+  },
+  async createTemplate(data: any) {
+    if (useMock) return { code: 200, message: '创建成功', data: null }
+    try {
+      const response = await templateApi.createTemplate(data)
+      return { code: 200, message: '创建成功', data: response.data.data }
+    } catch (error) {
+      console.error('创建模板失败:', error)
+      return { code: 500, message: '创建失败', data: null }
+    }
+  },
+  async updateTemplate(id: number, data: any) {
+    if (useMock) return { code: 200, message: '更新成功', data: null }
+    try {
+      const response = await templateApi.updateTemplate(id, data)
+      return { code: 200, message: '更新成功', data: response.data.data }
+    } catch (error) {
+      console.error('更新模板失败:', error)
+      return { code: 500, message: '更新失败', data: null }
+    }
+  },
+  async deleteTemplate(id: number) {
+    if (useMock) return { code: 200, message: '删除成功', data: true }
+    try {
+      const response = await templateApi.deleteTemplate(id)
+      return { code: 200, message: '删除成功', data: response.data.data }
+    } catch (error) {
+      console.error('删除模板失败:', error)
+      return { code: 500, message: '删除失败', data: false }
+    }
+  },
+  async publishTemplate(id: number) {
+    if (useMock) return { code: 200, message: '发布成功', data: true }
+    try {
+      const response = await templateApi.publishTemplate(id)
+      return { code: 200, message: '发布成功', data: response.data.data }
+    } catch (error) {
+      console.error('发布模板失败:', error)
+      return { code: 500, message: '发布失败', data: false }
+    }
+  },
+  async saveTemplateConfig(id: number, config: any) {
+    if (useMock) return { code: 200, message: '保存成功', data: null }
+    try {
+      const response = await templateApi.saveTemplateConfig(id, config)
+      return { code: 200, message: '保存成功', data: response.data.data }
+    } catch (error) {
+      console.error('保存模板配置失败:', error)
+      return { code: 500, message: '保存失败', data: null }
+    }
+  },
+  async createDefinitionFromTemplate(id: number, data: any) {
+    if (useMock) return { code: 200, message: '创建成功', data: null }
+    try {
+      const response = await templateApi.createDefinitionFromTemplate(id, data)
+      return { code: 200, message: '创建成功', data: response.data.data }
+    } catch (error) {
+      console.error('创建流程定义失败:', error)
+      return { code: 500, message: '创建失败', data: null }
+    }
+  }
+}
+
 export const userService = {
   async getUsers() {
     if (useMock) return mockApi.getUsers()
@@ -274,6 +366,7 @@ export const statisticsService = {
 
 // 3. 兼容性导出 (保留 apiService 以支持旧代码，但推荐使用上述具名导出)
 export const apiService = {
+  template: templateService,
   workflow: workflowService,
   task: taskService,
   instance: instanceService,

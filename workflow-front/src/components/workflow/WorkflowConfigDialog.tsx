@@ -41,7 +41,8 @@ interface ApprovalRule {
 
 interface FormField {
   id: string
-  name: string
+  name: string          // 字段标签（显示名称）
+  fieldName?: string     // 字段标识（用于存储）
   type: 'text' | 'number' | 'select' | 'textarea' | 'date'
   required: boolean
   options?: string[]
@@ -73,61 +74,53 @@ export function WorkflowConfigDialog({
 
   const loadWorkflowConfig = async () => {
     if (!workflow) return
-    
+
     setLoading(true)
     try {
-      // 模拟加载配置数据
-      const mockFormFields: FormField[] = [
-        {
-          id: 'title',
-          name: '标题',
-          type: 'text',
-          required: true,
-          placeholder: '请输入标题'
-        },
-        {
-          id: 'description',
-          name: '描述',
-          type: 'textarea',
-          required: false,
-          placeholder: '请输入详细描述'
-        },
-        {
-          id: 'priority',
-          name: '优先级',
-          type: 'select',
-          required: true,
-          options: ['低', '中', '高']
-        }
-      ]
+      // 调用后台接口获取流程配置
+      const response = await apiService.workflow.getConfig(workflow.id)
 
-      const mockApprovalRules: ApprovalRule[] = [
-        {
-          nodeId: 'approval1',
-          nodeName: '部门审批',
-          ruleType: 'single',
-          approvers: ['部门经理'],
-          timeout: 24
-        },
-        {
-          nodeId: 'approval2',
-          nodeName: '最终审批',
-          ruleType: 'multi',
-          approvers: ['总经理', '副总经理'],
-          minApprovals: 1,
-          timeout: 48
-        }
-      ]
+      if (response.code === 200 && response.data) {
+        const config = response.data
 
-      setFormFields(mockFormFields)
-      setApprovalRules(mockApprovalRules)
-      setFormConfig({
-        title: `${workflow.workflowName} 申请表单`,
-        description: `请填写${workflow.workflowName}相关信息`,
-        submitText: '提交申请'
-      })
+        // 解析表单字段配置
+        if (config.formSchema) {
+          if (config.formSchema.config) {
+            setFormConfig(config.formSchema.config)
+          }
+
+          if (config.formSchema.fields && Array.isArray(config.formSchema.fields)) {
+            // 转换字段格式以匹配本地 FormField 接口
+            const convertedFields: FormField[] = config.formSchema.fields.map((field: any) => ({
+              id: field.name || field.fieldName || `field_${Date.now()}`,
+              name: field.label || field.name,
+              fieldName: field.name,
+              type: field.type,
+              required: field.required || false,
+              options: field.options,
+              placeholder: field.placeholder
+            }))
+            setFormFields(convertedFields)
+          }
+        }
+
+        // 解析审批规则配置
+        if (config.approvalRules && Array.isArray(config.approvalRules)) {
+          setApprovalRules(config.approvalRules)
+        }
+      } else {
+        // 如果没有配置数据，设置默认配置
+        setFormConfig({
+          title: `${workflow.workflowName} 申请表单`,
+          description: `请填写${workflow.workflowName}相关信息`,
+          submitText: '提交申请'
+        })
+        setFormFields([])
+        setApprovalRules([])
+      }
     } catch (error) {
       console.error('加载配置失败:', error)
+      toast.error('加载配置失败，请稍后重试')
     } finally {
       setLoading(false)
     }
@@ -175,13 +168,24 @@ export function WorkflowConfigDialog({
 
   const handleSave = async () => {
     if (!workflow) return
-    
+
     setLoading(true)
     try {
+      // 转换表单字段，添加 fieldName（字段标识）和 label（字段标签）
+      const convertedFields = formFields.map(field => ({
+        name: field.name,              // 字段标签（显示名称）
+        label: field.name,              // 字段标签（与name相同，用于兼容）
+        fieldName: field.fieldName || generateFieldName(field.name),  // 字段标识
+        type: field.type,
+        required: field.required,
+        options: field.options,
+        placeholder: field.placeholder
+      }))
+
       const config = {
         formSchema: {
           config: formConfig,
-          fields: formFields
+          fields: convertedFields
         },
         approvalRules
       }
@@ -199,6 +203,55 @@ export function WorkflowConfigDialog({
     } finally {
       setLoading(false)
     }
+  }
+
+  /**
+   * 根据字段名称生成字段标识
+   * 将中文或特殊字符转换为拼音或简单的标识符
+   */
+  const generateFieldName = (name: string): string => {
+    if (!name) return 'field_' + Date.now()
+
+    // 简单的映射规则，常见字段可以直接映射
+    const fieldMapping: Record<string, string> = {
+      '标题': 'title',
+      '描述': 'description',
+      '优先级': 'priority',
+      '名称': 'name',
+      '数量': 'quantity',
+      '金额': 'amount',
+      '类型': 'type',
+      '日期': 'date',
+      '开始日期': 'startDate',
+      '结束日期': 'endDate',
+      '天数': 'days',
+      '原因': 'reason',
+      '供应商': 'supplier',
+      '物品名称': 'itemName',
+      '费用类型': 'expenseType',
+      '费用说明': 'explanation',
+      '出差类型': 'tripType',
+      '出差地点': 'destination',
+      '预算': 'budget',
+      '印章类型': 'sealType',
+      '文件名称': 'docName',
+      '文件份数': 'docCount',
+      '用印事由': 'usage',
+      '请假类型': 'leaveType',
+      '请假天数': 'leaveDays'
+    }
+
+    // 如果有直接映射，使用映射值
+    if (fieldMapping[name]) {
+      return fieldMapping[name]
+    }
+
+    // 否则，移除特殊字符，转换为小写，添加 _field 后缀
+    return name
+      .replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')  // 保留中文、字母、数字
+      .replace(/_+/g, '_')  // 多个下划线合并为一个
+      .replace(/^_|_$/g, '')  // 去除首尾下划线
+      .toLowerCase() + '_field'
   }
 
   const getRuleTypeIcon = (type: string) => {
@@ -318,11 +371,11 @@ export function WorkflowConfigDialog({
 
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label>字段名称</Label>
+                              <Label>字段标签</Label>
                               <Input
                                 value={field.name}
                                 onChange={(e) => handleUpdateFormField(index, { name: e.target.value })}
-                                placeholder="字段名称"
+                                placeholder="如：请假类型"
                               />
                             </div>
                             <div className="space-y-2">
@@ -339,6 +392,16 @@ export function WorkflowConfigDialog({
                                 <option value="date">日期</option>
                               </select>
                             </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>字段标识（自动生成，可修改）</Label>
+                            <Input
+                              value={field.fieldName || generateFieldName(field.name)}
+                              onChange={(e) => handleUpdateFormField(index, { fieldName: e.target.value })}
+                              placeholder="如：leaveType"
+                              className="font-mono text-sm"
+                            />
                           </div>
 
                           <div className="space-y-2">

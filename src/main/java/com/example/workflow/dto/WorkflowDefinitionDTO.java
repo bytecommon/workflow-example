@@ -35,6 +35,11 @@ public class WorkflowDefinitionDTO {
     private String category;
 
     /**
+     * 关联的模板ID
+     */
+    private Long templateId;
+
+    /**
      * 关联的表单ID
      */
     private Long formId;

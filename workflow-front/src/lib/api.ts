@@ -12,6 +12,8 @@ export interface WorkflowDefinition {
   version: number
   workflowDesc?: string
   category?: string
+  templateId?: number
+  templateName?: string
   formId?: number
   icon?: string
   status: number  // 0-未启用, 1-已启用
@@ -160,6 +162,118 @@ export interface ApiResponse<T> {
   data: T
 }
 
+// 流程模板相关接口
+export interface WorkflowTemplate {
+  id: number
+  templateKey: string
+  templateName: string
+  templateDesc?: string
+  category?: string
+  version: number
+  status: number  // 0-停用, 1-启用
+  icon?: string
+  sortOrder?: number
+  createTime: string
+  updateTime: string
+  createBy?: string
+  updateBy?: string
+}
+
+export interface WorkflowTemplateDetail {
+  id: number
+  templateKey: string
+  templateName: string
+  templateDesc?: string
+  category?: string
+  version: number
+  status: number
+  icon?: string
+  sortOrder?: number
+  createTime: string
+  updateTime: string
+  nodes?: Array<{
+    id: number
+    nodeKey: string
+    nodeName: string
+    nodeType: string
+    positionX: number
+    positionY: number
+    config?: string
+    createTime: string
+    updateTime: string
+  }>
+  edges?: Array<{
+    id: number
+    sourceNodeId: number
+    targetNodeId: number
+    conditionExpr?: string
+    priority?: number
+    createTime: string
+  }>
+}
+
+// 流程模板相关API
+export const templateApi = {
+  // 获取流程模板列表
+  getTemplates: (params?: {
+    pageNum?: number
+    pageSize?: number
+    templateName?: string
+    category?: string
+    status?: number
+  }) =>
+    api.get<ApiResponse<Page<WorkflowTemplate>>>('/workflow/template', { params }),
+
+  // 获取流程模板详情
+  getTemplateDetail: (id: number) =>
+    api.get<ApiResponse<WorkflowTemplateDetail>>(`/workflow/template/${id}`),
+
+  // 创建流程模板
+  createTemplate: (data: {
+    templateKey: string
+    templateName: string
+    templateDesc?: string
+    category?: string
+    icon?: string
+    sortOrder?: number
+  }) =>
+    api.post<ApiResponse<number>>('/workflow/template', data),
+
+  // 更新流程模板
+  updateTemplate: (id: number, data: {
+    templateKey: string
+    templateName: string
+    templateDesc?: string
+    category?: string
+    icon?: string
+    sortOrder?: number
+    status?: number
+  }) =>
+    api.put<ApiResponse<void>>(`/workflow/template/${id}`, data),
+
+  // 删除流程模板
+  deleteTemplate: (id: number) =>
+    api.delete<ApiResponse<void>>(`/workflow/template/${id}`),
+
+  // 发布流程模板
+  publishTemplate: (id: number) =>
+    api.post<ApiResponse<void>>(`/workflow/template/${id}/publish`),
+
+  // 保存流程模板配置
+  saveTemplateConfig: (id: number, config: {
+    nodes?: any[]
+    edges?: any[]
+  }) =>
+    api.post<ApiResponse<void>>(`/workflow/template/${id}/config`, config),
+
+  // 根据模板创建流程定义
+  createDefinitionFromTemplate: (id: number, data: {
+    workflowName: string
+    workflowKey: string
+  }) =>
+    api.post<ApiResponse<number>>(`/workflow/template/${id}/create-definition`, data),
+}
+
 // 流程定义相关API
 export const workflowApi = {
   // 获取流程定义列表
@@ -169,7 +283,7 @@ export const workflowApi = {
     workflowName?: string
     status?: number
     category?: string
-  }) => 
+  }) =>
     api.get<ApiResponse<Page<WorkflowDefinition>>>('/workflow/definition', { params }),
   
   // 获取工作流详情（包含流程图数据）
@@ -206,12 +320,19 @@ export const workflowApi = {
   publishWorkflow: (id: number) => 
     api.post<ApiResponse<void>>(`/workflow/definition/${id}/publish`),
   
+  // 获取工作流配置
+  getConfig: (id: number) =>
+    api.get<ApiResponse<{
+      formSchema?: any
+      approvalRules?: any[]
+    }>>(`/workflow/definition/${id}/config`),
+
   // 保存工作流配置
   saveConfig: (id: number, config: {
     // 配置参数根据实际需要定义
     formSchema?: any
     approvalRules?: any[]
-  }) => 
+  }) =>
     api.post<ApiResponse<void>>(`/workflow/definition/${id}/config`, config),
 }
 

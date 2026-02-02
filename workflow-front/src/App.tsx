@@ -3,13 +3,14 @@ import { Dashboard } from './components/dashboard/Dashboard'
 import { WorkflowList } from './components/workflow/WorkflowList'
 import { TaskList } from './components/task/TaskList'
 import { InstanceList } from './components/instance/InstanceList'
+import { TemplateList } from './components/workflow/TemplateList'
 import { Header } from './components/layout/Header'
 import { LoginPage } from './components/auth/LoginPage'
 import { login, isAuthenticated, getCurrentUser, initializeAuth } from './lib/auth'
 import { useToast } from './hooks/useToast'
 import { ToastContainer } from './components/ui/toast'
 
-type ActiveTab = 'dashboard' | 'workflows' | 'tasks' | 'instances'
+type ActiveTab = 'dashboard' | 'templates' | 'workflows' | 'tasks' | 'instances'
 
 function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard')
@@ -42,6 +43,8 @@ function App() {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard currentUser={currentUser} />
+      case 'templates':
+        return <TemplateList currentUser={currentUser} />
       case 'workflows':
         return <WorkflowList currentUser={currentUser} />
       case 'tasks':
@@ -60,8 +63,8 @@ function App() {
   return (
     <div className="min-h-screen bg-background">
       <Header activeTab={activeTab} onTabChange={setActiveTab} currentUser={currentUser} onLogout={handleLogout} />
-      
-      <main className="container mx-auto px-4 py-6">
+
+      <main className="container mx-auto px-4 py-6 mt-32">
         {renderContent()}
       </main>
 

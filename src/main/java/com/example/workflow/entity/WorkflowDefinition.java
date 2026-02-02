@@ -42,7 +42,13 @@ public class WorkflowDefinition {
      * 例如：人事管理、财务管理、行政管理
      */
     private String category;
-    
+
+    /**
+     * 关联模板ID
+     * 关联到workflow_template表的id字段
+     */
+    private Long templateId;
+
     /**
      * 版本号
      * 工作流的版本，从1开始递增

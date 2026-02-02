@@ -4,45 +4,35 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 工作流定义VO
+ * 流程模板VO
  */
 @Data
-public class WorkflowDefinitionVO {
+public class WorkflowTemplateVO {
 
     /**
-     * 工作流ID
+     * 模板ID
      */
     private Long id;
 
     /**
-     * 工作流唯一标识
+     * 模板唯一标识
      */
-    private String workflowKey;
+    private String templateKey;
 
     /**
-     * 工作流名称
-     */
-    private String workflowName;
-
-    /**
-     * 工作流描述
-     */
-    private String workflowDesc;
-
-    /**
-     * 工作流分类
-     */
-    private String category;
-
-    /**
-     * 关联模板ID
-     */
-    private Long templateId;
-
-    /**
-     * 关联模板名称
+     * 模板名称
      */
     private String templateName;
+
+    /**
+     * 模板描述
+     */
+    private String templateDesc;
+
+    /**
+     * 模板分类
+     */
+    private String category;
 
     /**
      * 版本号
@@ -55,12 +45,7 @@ public class WorkflowDefinitionVO {
     private Integer status;
 
     /**
-     * 关联表单ID
-     */
-    private Long formId;
-
-    /**
-     * 工作流图标
+     * 模板图标
      */
     private String icon;
 
