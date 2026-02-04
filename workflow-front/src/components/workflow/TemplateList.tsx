@@ -4,7 +4,8 @@ import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { Input } from '../ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
-import { CreateTemplateDialog } from './CreateTemplateDialog'
+import { PageHeader } from '../layout/PageHeader'
+import { CreateTemplatePage } from './CreateTemplatePage'
 import { TemplateDetailDialog } from './TemplateDetailDialog'
 import { WorkflowTemplate, type Page } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
@@ -43,7 +44,7 @@ export function TemplateList({ currentUser }: TemplateListProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [selectedStatus, setSelectedStatus] = useState<number | undefined>(undefined)
   const [selectedTemplates, setSelectedTemplates] = useState<number[]>([])
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [showCreatePage, setShowCreatePage] = useState(false)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<WorkflowTemplate | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
@@ -177,10 +178,116 @@ export function TemplateList({ currentUser }: TemplateListProps) {
 
   const handleCreateTemplate = async (data: any) => {
     try {
-      const response = await apiService.template.createTemplate(data)
+      // 1. 先创建模板基本信息
+      const { nodes, edges, ...templateData } = data
+      const response = await apiService.template.createTemplate(templateData)
       if (response.code === 200) {
+        const templateId = response.data
+
+        // 2. 如果有节点和连线，保存配置
+        if (nodes && nodes.length > 0) {
+          // 验证节点是否有连线
+          if (!edges || edges.length === 0) {
+            toast.error('流程配置错误：至少需要一个连线')
+            return
+          }
+
+          // 检查每个节点是否至少有一条连线
+          const disconnectedNodeIds = nodes.filter(node => {
+            const hasIncoming = edges.some(edge => edge.target === node.id)
+            const hasOutgoing = edges.some(edge => edge.source === node.id)
+            return !hasIncoming && !hasOutgoing
+          }).map(node => node.data?.label || node.id)
+
+          if (disconnectedNodeIds.length > 0) {
+            toast.error(`以下节点没有连线：${disconnectedNodeIds.join(', ')}`)
+            return
+          }
+
+          // 验证开始和结束节点
+          const startNodes = nodes.filter(node => {
+            const type = node.type?.toLowerCase()
+            const nodeType = node.data?.nodeType?.toLowerCase()
+            return type === 'start' || nodeType === 'start'
+          })
+          const endNodes = nodes.filter(node => {
+            const type = node.type?.toLowerCase()
+            const nodeType = node.data?.nodeType?.toLowerCase()
+            return type === 'end' || nodeType === 'end'
+          })
+
+          if (startNodes.length !== 1) {
+            toast.error('流程配置错误：必须恰好有一个开始节点')
+            return
+          }
+
+          if (endNodes.length !== 1) {
+            toast.error('流程配置错误：必须恰好有一个结束节点')
+            return
+          }
+
+          const startNode = startNodes[0]
+          const endNode = endNodes[0]
+
+          // 检查开始节点是否有入边
+          const hasIncomingToStart = edges.some(edge => edge.target === startNode.id)
+          if (hasIncomingToStart) {
+            toast.error('流程配置错误：开始节点不能有入边')
+            return
+          }
+
+          // 检查结束节点是否有出边
+          const hasOutgoingFromEnd = edges.some(edge => edge.source === endNode.id)
+          if (hasOutgoingFromEnd) {
+            toast.error('流程配置错误：结束节点不能有出边')
+            return
+          }
+
+          // 检查开始节点是否有出边
+          const hasOutgoingFromStart = edges.some(edge => edge.source === startNode.id)
+          if (!hasOutgoingFromStart) {
+            toast.error('流程配置错误：开始节点必须有出边')
+            return
+          }
+
+          // 检查结束节点是否有入边
+          const hasIncomingToEnd = edges.some(edge => edge.target === endNode.id)
+          if (!hasIncomingToEnd) {
+            toast.error('流程配置错误：结束节点必须有入边')
+            return
+          }
+
+          const configResponse = await apiService.template.saveTemplateConfig(templateId, {
+            nodes: nodes.map((node: any) => ({
+              nodeName: node.data.label,
+              nodeKey: node.data.nodeKey,
+              nodeType: node.data.nodeType?.toUpperCase(),
+              positionX: Math.round(node.position.x),
+              positionY: Math.round(node.position.y),
+              config: JSON.stringify({
+                assignees: node.data.approvers,
+                approveMode: node.data.approveMode,
+                condition: node.data.condition,
+                timeout: node.data.timeout,
+                description: node.data.description
+              })
+            })),
+            edges: edges.map((edge: any) => ({
+              sourceNodeKey: edge.source,
+              targetNodeKey: edge.target,
+              conditionExpr: edge.data?.condition,
+              priority: edge.data?.priority
+            }))
+          })
+
+          if (configResponse.code !== 200) {
+            toast.error(`保存流程配置失败: ${configResponse.message}`)
+            return
+          }
+        }
+
         await loadTemplates()
-        setShowCreateDialog(false)
+        setShowCreatePage(false)
         toast.success('创建模板成功')
       } else {
         toast.error(`创建模板失败: ${response.message}`)
@@ -239,18 +346,30 @@ export function TemplateList({ currentUser }: TemplateListProps) {
     setShowDetailDialog(true)
   }
 
+  // 显示创建页面
+  if (showCreatePage) {
+    return (
+      <CreateTemplatePage
+        onBack={() => setShowCreatePage(false)}
+        onSubmit={handleCreateTemplate}
+      />
+    )
+  }
+
   return (
     <div className="space-y-6">
+      <PageHeader
+        title="流程模板管理"
+        description="管理和配置工作流模板"
+        actions={
+          <Button onClick={() => setShowCreatePage(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            新建模板
+          </Button>
+        }
+      />
+
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>流程模板管理</CardTitle>
-            <Button onClick={() => setShowCreateDialog(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              新建模板
-            </Button>
-          </div>
-        </CardHeader>
         <CardContent>
           {/* 批量操作区域 */}
           {selectedTemplates.length > 0 && (
@@ -467,11 +586,7 @@ export function TemplateList({ currentUser }: TemplateListProps) {
         </CardContent>
       </Card>
 
-      <CreateTemplateDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-        onSubmit={handleCreateTemplate}
-      />
+
 
       <TemplateDetailDialog
         open={showDetailDialog}

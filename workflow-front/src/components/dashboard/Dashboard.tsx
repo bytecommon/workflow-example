@@ -5,9 +5,9 @@ import { Button } from '../ui/button'
 import { WorkflowList } from '../workflow/WorkflowList'
 import { TaskList } from '../task/TaskList'
 import { StartWorkflowDialog } from '../workflow/StartWorkflowDialog'
-import { WorkflowTask, WorkflowInstance, WorkflowCcVO } from '@/lib/api'
+import { PageHeader } from '../layout/PageHeader'
+import { WorkflowTask, WorkflowInstance, WorkflowCcVO, taskApi, instanceApi, ccApi } from '@/lib/api'
 import { formatDate, getStatusColor, getStatusText } from '@/lib/utils'
-import { apiService } from '@/lib/apiService'
 import { useToast } from '@/hooks/useToast'
 import {
   TrendingUp,
@@ -53,11 +53,9 @@ export function Dashboard({ currentUser }: DashboardProps) {
     if (!currentUser?.id) return
     
     try {
-      // 使用API服务获取数据，传递用户ID
-      const response = await apiService.statistics.getStatistics(currentUser.id)
-      
+      // 暂时使用模拟统计数据，后续可从后端获取
       // 获取未读抄送数量
-      const ccResponse = await apiService.cc.getMyCc({
+      const ccResponse = await ccApi.getMyCc({
         userId: currentUser.id,
         pageSize: 100 // 获取所有抄送记录以统计未读数量
       })
@@ -67,59 +65,45 @@ export function Dashboard({ currentUser }: DashboardProps) {
         unreadCcCount = (ccResponse.data.records as WorkflowCcVO[]).filter((cc: WorkflowCcVO) => cc.status === 0).length
       }
       
-      if (response.code === 200) {
-        setStatistics({
-          ...response.data,
-          unreadCc: unreadCcCount
-        })
-      }
+      // 设置默认统计数据
+      setStatistics({
+        totalInstances: 0,
+        pendingTasks: 0,
+        completedInstances: 0,
+        runningInstances: 0,
+        unreadCc: unreadCcCount
+      })
     } catch (error) {
       console.error('获取统计数据失败:', error)
     }
   }
 
   const loadRecentTasks = async () => {
-    // 模拟最近任务数据
-    setRecentTasks([
-      {
-        id: 1,
-        taskId: 'TASK_001',
-        instanceId: 'INST_001',
-        definitionId: 1,
-        definitionName: '请假申请流程',
-        nodeId: 'NODE_001',
-        nodeName: '部门经理审批',
-        assigneeId: 'user001',
-        assigneeName: '张三',
-        status: 10,
-        statusText: '待处理',
-        createTime: '2024-01-15T10:00:00',
-        dueTime: '2024-01-18T10:00:00'
-      },
-      {
-        id: 2,
-        taskId: 'TASK_002',
-        instanceId: 'INST_002',
-        definitionId: 2,
-        definitionName: '报销申请流程',
-        nodeId: 'NODE_002',
-        nodeName: '财务审核',
-        assigneeId: 'user001',
-        assigneeName: '张三',
-        status: 10,
-        statusText: '待处理',
-        createTime: '2024-01-16T14:30:00',
-        dueTime: '2024-01-19T14:30:00'
+    if (!currentUser?.id) return
+    
+    try {
+      // 使用taskApi获取"我的待办任务"
+      const response = await taskApi.getPendingTasks({
+        userId: currentUser.id,
+        pageNum: 1,
+        pageSize: 5
+      })
+      if (response.code === 200 && response.data && 'records' in response.data) {
+        setRecentTasks(response.data.records as WorkflowTask[])
       }
-    ])
+    } catch (error) {
+      console.error('获取待办任务失败:', error)
+      // 使用空数组作为后备
+      setRecentTasks([])
+    }
   }
 
   const loadRecentInstances = async () => {
     if (!currentUser?.id) return
     
     try {
-      // 使用API服务获取"我发起的流程"
-      const response = await apiService.instance.getMyInstances({
+      // 使用instanceApi获取"我发起的流程实例"
+      const response = await instanceApi.getMyInstances({
         userId: currentUser.id,
         pageNum: 1,
         pageSize: 5
@@ -129,31 +113,8 @@ export function Dashboard({ currentUser }: DashboardProps) {
       }
     } catch (error) {
       console.error('获取我发起的流程失败:', error)
-      // 使用模拟数据作为后备
-      setRecentInstances([
-        {
-          id: 1,
-          instanceNo: 'INST-2024-001',
-          workflowName: '请假审批',
-          status: 'RUNNING',
-          title: '李四的请假申请',
-          startTime: '2024-01-15T09:00:00',
-          priority: 0,
-          starterUserId: 'user001',
-          starterUserName: '张三'
-        },
-        {
-          id: 2,
-          instanceNo: 'INST-2024-002',
-          workflowName: '报销审批',
-          status: 'RUNNING',
-          title: '王五的报销申请',
-          startTime: '2024-01-16T13:00:00',
-          priority: 0,
-          starterUserId: 'user001',
-          starterUserName: '张三'
-        }
-      ])
+      // 不显示模拟数据，设为空数组
+      setRecentInstances([])
     }
   }
 
@@ -161,8 +122,8 @@ export function Dashboard({ currentUser }: DashboardProps) {
     if (!currentUser?.id) return
     
     try {
-      // 使用API服务获取"我的抄送"
-      const response = await apiService.cc.getMyCc({
+      // 使用ccApi获取"我的抄送"
+      const response = await ccApi.getMyCc({
         userId: currentUser.id,
         pageNum: 1,
         pageSize: 5
@@ -172,32 +133,8 @@ export function Dashboard({ currentUser }: DashboardProps) {
       }
     } catch (error) {
       console.error('获取我的抄送失败:', error)
-      // 使用模拟数据作为后备
-      setRecentCc([
-        {
-          id: 1,
-          instanceId: 100,
-          instanceNo: 'INST-2024-001',
-          workflowName: '请假审批',
-          nodeName: '部门经理审批',
-          title: '张三的请假申请',
-          startUserName: '张三',
-          status: 0,
-          createTime: '2024-01-15T09:00:00'
-        },
-        {
-          id: 2,
-          instanceId: 101,
-          instanceNo: 'INST-2024-002',
-          workflowName: '报销审批',
-          nodeName: '财务审核',
-          title: '李四的报销申请',
-          startUserName: '李四',
-          status: 1,
-          createTime: '2024-01-16T10:00:00',
-          readTime: '2024-01-16T11:00:00'
-        }
-      ])
+      // 不显示模拟数据，设为空数组
+      setRecentCc([])
     }
   }
 
@@ -256,6 +193,17 @@ export function Dashboard({ currentUser }: DashboardProps) {
 
   return (
     <div className="space-y-6">
+      <PageHeader
+        title="工作台"
+        description="欢迎使用工作流审批系统"
+        actions={
+          <Button onClick={() => setStartWorkflowDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            发起新流程
+          </Button>
+        }
+      />
+
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((card, index) => (

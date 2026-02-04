@@ -2,7 +2,73 @@
 -- 工作流系统测试数据
 -- ====================================
 
--- 1. 插入测试表单
+-- ====================================
+-- 用户权限相关数据
+-- ====================================
+
+-- 1. 插入部门数据
+INSERT INTO sys_dept (id, dept_name, dept_code, parent_id, sort_order, status, create_by) VALUES
+(1, '总经办', 'DEPT_001', 0, 1, 1, 'admin'),
+(2, '技术部', 'DEPT_002', 0, 2, 1, 'admin'),
+(3, '销售部', 'DEPT_003', 0, 3, 1, 'admin'),
+(4, '财务部', 'DEPT_004', 0, 4, 1, 'admin'),
+(5, '人事部', 'DEPT_005', 0, 5, 1, 'admin'),
+(6, '市场部', 'DEPT_006', 0, 6, 1, 'admin'),
+(7, '技术部-前端组', 'DEPT_002_01', 2, 1, 1, 'admin'),
+(8, '技术部-后端组', 'DEPT_002_02', 2, 2, 1, 'admin');
+
+-- 2. 插入角色数据
+INSERT INTO sys_role (id, role_code, role_name, description, status, create_by) VALUES
+(1, 'admin', '系统管理员', '系统管理员，拥有所有权限', 1, 'admin'),
+(2, 'manager', '部门经理', '部门经理，管理部门相关事务', 1, 'admin'),
+(3, 'supervisor', '主管', '部门主管，审批部门内流程', 1, 'admin'),
+(4, 'staff', '普通员工', '普通员工，发起和参与流程', 1, 'admin'),
+(5, 'finance', '财务人员', '财务专员，处理财务相关审批', 1, 'admin'),
+(6, 'hr', '人事专员', '人事专员，处理人事相关审批', 1, 'admin'),
+(7, 'ceo', '总经理', '公司总经理，终审权限', 1, 'admin');
+
+-- 3. 插入用户数据
+-- 密码: 123456 (bcrypt加密)
+INSERT INTO sys_user (id, username, password, real_name, email, phone, status, dept_id, create_by) VALUES
+(1, 'admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVpmRm', '系统管理员', 'admin@example.com', '13800138000', 1, 1, 'admin'),
+(2, 'zhangsan', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVpmRm', '张三', 'zhangsan@example.com', '13800138001', 1, 2, 'admin'),
+(3, 'lisi', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVpmRm', '李四', 'lisi@example.com', '13800138002', 1, 3, 'admin'),
+(4, 'wangwu', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVpmRm', '王五', 'wangwu@example.com', '13800138003', 1, 4, 'admin'),
+(5, 'zhaoliu', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVpmRm', '赵六', 'zhaoliu@example.com', '13800138004', 1, 5, 'admin'),
+(6, 'qianqi', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVpmRm', '钱七', 'qianqi@example.com', '13800138005', 1, 2, 'admin'),
+(7, 'sunba', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVpmRm', '孙八', 'sunba@example.com', '13800138006', 1, 3, 'admin'),
+(8, 'zhoujiu', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVpmRm', '周九', 'zhoujiu@example.com', '13800138007', 1, 4, 'admin'),
+(9, 'wushi', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVpmRm', '吴十', 'wushi@example.com', '13800138008', 1, 5, 'admin'),
+(10, 'zhengshiyi', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVpmRm', '郑十一', 'zhengshiyi@example.com', '13800138009', 1, 1, 'admin'),
+(11, 'manager_tech', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVpmRm', '技术部经理', 'tech.manager@example.com', '13800138010', 1, 2, 'admin'),
+(12, 'manager_sales', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVpmRm', '销售部经理', 'sales.manager@example.com', '13800138011', 1, 3, 'admin'),
+(13, 'manager_finance', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVpmRm', '财务经理', 'finance.manager@example.com', '13800138012', 1, 4, 'admin'),
+(14, 'manager_hr', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVpmRm', '人事经理', 'hr.manager@example.com', '13800138013', 1, 5, 'admin'),
+(15, 'ceo', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVpmRm', '总经理', 'ceo@example.com', '13800138014', 1, 1, 'admin');
+
+-- 4. 插入用户角色关联数据
+INSERT INTO sys_user_role (user_id, role_id) VALUES
+(1, 1),    -- admin -> 系统管理员
+(2, 4),    -- zhangsan -> 普通员工
+(3, 4),    -- lisi -> 普通员工
+(4, 4),    -- wangwu -> 普通员工
+(5, 4),    -- zhaoliu -> 普通员工
+(6, 4),    -- qianqi -> 普通员工
+(7, 4),    -- sunba -> 普通员工
+(8, 4),    -- zhoujiu -> 普通员工
+(9, 4),    -- wushi -> 普通员工
+(10, 7),   -- zhengshiyi -> 总经理
+(11, 2),   -- manager_tech -> 部门经理
+(12, 2),   -- manager_sales -> 部门经理
+(13, 2),   -- manager_finance -> 部门经理
+(14, 2),   -- manager_hr -> 部门经理
+(15, 7);   -- ceo -> 总经理
+
+-- ====================================
+-- 工作流相关数据
+-- ====================================
+
+-- 5. 插入测试表单
 INSERT INTO workflow_form (id, form_key, form_name, form_desc, form_config, status, create_by) VALUES
 (1, 'leave_form', '请假申请表', '员工请假申请表单',
 '{"fields":[{"name":"leaveType","label":"请假类型","type":"select","required":true,"options":["事假","病假","年假","调休"]},{"name":"days","label":"请假天数","type":"number","required":true},{"name":"startDate","label":"开始日期","type":"date","required":true},{"name":"endDate","label":"结束日期","type":"date","required":true},{"name":"reason","label":"请假原因","type":"textarea","required":true}]}',

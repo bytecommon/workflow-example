@@ -4,11 +4,14 @@ import { WorkflowList } from './components/workflow/WorkflowList'
 import { TaskList } from './components/task/TaskList'
 import { InstanceList } from './components/instance/InstanceList'
 import { TemplateList } from './components/workflow/TemplateList'
-import { Header } from './components/layout/Header'
+import { Sidebar } from './components/layout/Sidebar'
 import { LoginPage } from './components/auth/LoginPage'
 import { login, isAuthenticated, getCurrentUser, initializeAuth } from './lib/auth'
 import { useToast } from './hooks/useToast'
 import { ToastContainer } from './components/ui/toast'
+import { Button } from './components/ui/button'
+import { Card } from './components/ui/card'
+import { ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
 
 type ActiveTab = 'dashboard' | 'templates' | 'workflows' | 'tasks' | 'instances'
 
@@ -16,6 +19,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const { toasts, removeToast } = useToast()
 
   // 初始化认证状态
@@ -61,11 +65,24 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header activeTab={activeTab} onTabChange={setActiveTab} currentUser={currentUser} onLogout={handleLogout} />
+    <div className="min-h-screen bg-background flex">
+      <Sidebar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+      />
 
-      <main className="container mx-auto px-4 py-6 mt-32">
-        {renderContent()}
+      <main
+        className={`flex-1 transition-all duration-300 ${
+          sidebarCollapsed ? 'ml-16' : 'ml-64'
+        }`}
+      >
+        <div className="container mx-auto px-4 py-6 h-full">
+          {renderContent()}
+        </div>
       </main>
 
       <ToastContainer toasts={toasts} onClose={removeToast} />

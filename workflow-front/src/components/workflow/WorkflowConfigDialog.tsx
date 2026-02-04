@@ -20,6 +20,8 @@ import {
 import { WorkflowDefinition } from '@/lib/api'
 import { useToast } from '@/hooks/useToast'
 import { apiService } from '@/lib/apiService'
+import { FlowDesigner } from './flow/FlowDesigner'
+import { Node, Edge } from '@xyflow/react'
 
 interface WorkflowConfigDialogProps {
   open: boolean
@@ -65,10 +67,17 @@ export function WorkflowConfigDialog({
     description: '',
     submitText: '提交'
   })
+  const [nodes, setNodes] = useState<Node[]>([])
+  const [edges, setEdges] = useState<Edge[]>([])
 
   useEffect(() => {
     if (workflow && open) {
       loadWorkflowConfig()
+    } else if (!open) {
+      // 关闭对话框时重置状态
+      setNodes([])
+      setEdges([])
+      setActiveTab('form')
     }
   }, [workflow, open])
 
@@ -108,6 +117,85 @@ export function WorkflowConfigDialog({
         if (config.approvalRules && Array.isArray(config.approvalRules)) {
           setApprovalRules(config.approvalRules)
         }
+
+        // 解析节点配置
+        if (config.nodes && Array.isArray(config.nodes)) {
+          const flowNodes: Node[] = config.nodes.map((node: any) => {
+            try {
+              return {
+                id: node.id || node.nodeKey,
+                type: node.nodeType?.toLowerCase() || 'task',
+                position: { x: Number(node.positionX) || 0, y: Number(node.positionY) || 0 },
+                data: {
+                  label: node.nodeName,
+                  nodeKey: node.nodeKey,
+                  nodeType: node.nodeType?.toLowerCase(),
+                  ...JSON.parse(node.config || '{}')
+                }
+              }
+            } catch (error) {
+              console.error('解析节点配置失败:', error, node)
+              // 如果解析失败，返回一个基本的节点配置
+              return {
+                id: node.id || node.nodeKey || `node_${Date.now()}`,
+                type: node.nodeType?.toLowerCase() || 'task',
+                position: { x: 0, y: 0 },
+                data: {
+                  label: node.nodeName || '未命名节点',
+                  nodeKey: node.nodeKey || `node_${Date.now()}`,
+                  nodeType: node.nodeType?.toLowerCase() || 'task'
+                }
+              }
+            }
+          }).filter(node => node.id && node.position) // 过滤掉无效节点
+          setNodes(flowNodes)
+        } else {
+          // 设置默认节点
+          setNodes([
+            {
+              id: 'start',
+              type: 'start',
+              position: { x: 100, y: 300 },
+              data: { label: '开始', nodeKey: 'start', nodeType: 'start' }
+            },
+            {
+              id: 'approve',
+              type: 'approve',
+              position: { x: 350, y: 300 },
+              data: { label: '审批', nodeKey: 'approve', nodeType: 'approve' }
+            },
+            {
+              id: 'end',
+              type: 'end',
+              position: { x: 600, y: 300 },
+              data: { label: '结束', nodeKey: 'end', nodeType: 'end' }
+            }
+          ])
+        }
+
+        // 解析连线配置
+        if (config.edges && Array.isArray(config.edges)) {
+          const flowEdges: Edge[] = config.edges
+            .filter((edge: any) => edge.sourceNodeKey && edge.targetNodeKey)
+            .map((edge: any) => ({
+              id: edge.id || `${edge.sourceNodeKey}-${edge.targetNodeKey}`,
+              source: edge.sourceNodeKey,
+              target: edge.targetNodeKey,
+              type: edge.conditionExpr ? 'conditional' : 'default',
+              data: {
+                condition: edge.conditionExpr,
+                priority: edge.priority,
+                label: edge.conditionExpr || ''
+              }
+            }))
+          setEdges(flowEdges)
+        } else {
+          // 设置默认连线
+          setEdges([
+            { id: 'e1', source: 'start', target: 'approve', type: 'default', data: {} },
+            { id: 'e2', source: 'approve', target: 'end', type: 'default', data: {} }
+          ])
+        }
       } else {
         // 如果没有配置数据，设置默认配置
         setFormConfig({
@@ -117,6 +205,30 @@ export function WorkflowConfigDialog({
         })
         setFormFields([])
         setApprovalRules([])
+        setNodes([
+          {
+            id: 'start',
+            type: 'start',
+            position: { x: 100, y: 300 },
+            data: { label: '开始', nodeKey: 'start', nodeType: 'start' }
+          },
+          {
+            id: 'approve',
+            type: 'approve',
+            position: { x: 350, y: 300 },
+            data: { label: '审批', nodeKey: 'approve', nodeType: 'approve' }
+          },
+          {
+            id: 'end',
+            type: 'end',
+            position: { x: 600, y: 300 },
+            data: { label: '结束', nodeKey: 'end', nodeType: 'end' }
+          }
+        ])
+        setEdges([
+          { id: 'e1', source: 'start', target: 'approve', type: 'default', data: {} },
+          { id: 'e2', source: 'approve', target: 'end', type: 'default', data: {} }
+        ])
       }
     } catch (error) {
       console.error('加载配置失败:', error)
@@ -171,6 +283,85 @@ export function WorkflowConfigDialog({
 
     setLoading(true)
     try {
+      // 验证节点是否有连线
+      if (edges.length === 0) {
+        toast.error('流程配置错误：至少需要一个连线')
+        setLoading(false)
+        return
+      }
+
+      // 检查每个节点是否至少有一条连线
+      const disconnectedNodeIds = nodes.filter(node => {
+        const hasIncoming = edges.some(edge => edge.target === node.id)
+        const hasOutgoing = edges.some(edge => edge.source === node.id)
+        return !hasIncoming && !hasOutgoing
+      }).map(node => node.data?.label || node.id)
+
+      if (disconnectedNodeIds.length > 0) {
+        toast.error(`以下节点没有连线：${disconnectedNodeIds.join(', ')}`)
+        setLoading(false)
+        return
+      }
+
+      // 验证开始和结束节点
+      const startNodes = nodes.filter(node => {
+        const type = node.type?.toLowerCase()
+        const nodeType = node.data?.nodeType?.toLowerCase()
+        return type === 'start' || nodeType === 'start'
+      })
+      const endNodes = nodes.filter(node => {
+        const type = node.type?.toLowerCase()
+        const nodeType = node.data?.nodeType?.toLowerCase()
+        return type === 'end' || nodeType === 'end'
+      })
+
+      if (startNodes.length !== 1) {
+        toast.error('流程配置错误：必须恰好有一个开始节点')
+        setLoading(false)
+        return
+      }
+
+      if (endNodes.length !== 1) {
+        toast.error('流程配置错误：必须恰好有一个结束节点')
+        setLoading(false)
+        return
+      }
+
+      const startNode = startNodes[0]
+      const endNode = endNodes[0]
+
+      // 检查开始节点是否有入边
+      const hasIncomingToStart = edges.some(edge => edge.target === startNode.id)
+      if (hasIncomingToStart) {
+        toast.error('流程配置错误：开始节点不能有入边')
+        setLoading(false)
+        return
+      }
+
+      // 检查结束节点是否有出边
+      const hasOutgoingFromEnd = edges.some(edge => edge.source === endNode.id)
+      if (hasOutgoingFromEnd) {
+        toast.error('流程配置错误：结束节点不能有出边')
+        setLoading(false)
+        return
+      }
+
+      // 检查开始节点是否有出边
+      const hasOutgoingFromStart = edges.some(edge => edge.source === startNode.id)
+      if (!hasOutgoingFromStart) {
+        toast.error('流程配置错误：开始节点必须有出边')
+        setLoading(false)
+        return
+      }
+
+      // 检查结束节点是否有入边
+      const hasIncomingToEnd = edges.some(edge => edge.target === endNode.id)
+      if (!hasIncomingToEnd) {
+        toast.error('流程配置错误：结束节点必须有入边')
+        setLoading(false)
+        return
+      }
+
       // 转换表单字段，添加 fieldName（字段标识）和 label（字段标签）
       const convertedFields = formFields.map(field => ({
         name: field.name,              // 字段标签（显示名称）
@@ -182,7 +373,33 @@ export function WorkflowConfigDialog({
         placeholder: field.placeholder
       }))
 
+      // 转换流程节点
+      const workflowNodes = nodes.map(node => ({
+        nodeName: node.data.label,
+        nodeKey: node.data.nodeKey,
+        nodeType: node.data.nodeType?.toUpperCase(),
+        positionX: Math.round(node.position.x),
+        positionY: Math.round(node.position.y),
+        config: JSON.stringify({
+          assignees: node.data.approvers,
+          approveMode: node.data.approveMode,
+          condition: node.data.condition,
+          timeout: node.data.timeout,
+          description: node.data.description
+        })
+      }))
+
+      // 转换连线
+      const workflowEdges = edges.map(edge => ({
+        sourceNodeKey: edge.source,
+        targetNodeKey: edge.target,
+        conditionExpr: edge.data?.condition,
+        priority: edge.data?.priority
+      }))
+
       const config = {
+        nodes: workflowNodes,
+        edges: workflowEdges,
         formSchema: {
           config: formConfig,
           fields: convertedFields
@@ -288,8 +505,9 @@ export function WorkflowConfigDialog({
 
         <div className="flex-1 overflow-y-auto px-6 pb-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="form">表单配置</TabsTrigger>
+              <TabsTrigger value="design">流程设计</TabsTrigger>
               <TabsTrigger value="approval">审批规则</TabsTrigger>
               <TabsTrigger value="preview">预览</TabsTrigger>
             </TabsList>
@@ -441,6 +659,21 @@ export function WorkflowConfigDialog({
                       ))}
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="design" className="mt-4">
+              <Card className="h-[600px]">
+                <CardContent className="h-full p-4">
+                  <FlowDesigner
+                    initialNodes={nodes}
+                    initialEdges={edges}
+                    onChange={(newNodes, newEdges) => {
+                      setNodes(newNodes as any)
+                      setEdges(newEdges as any)
+                    }}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

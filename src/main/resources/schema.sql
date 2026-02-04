@@ -2,6 +2,75 @@
 -- 工作流系统数据库表结构 (H2数据库)
 -- ====================================
 
+-- ====================================
+-- 用户权限相关表
+-- ====================================
+
+-- 1. 用户表
+CREATE TABLE IF NOT EXISTS sys_user (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    username VARCHAR(64) NOT NULL UNIQUE COMMENT '用户名',
+    password VARCHAR(128) NOT NULL COMMENT '密码',
+    real_name VARCHAR(64) NOT NULL COMMENT '真实姓名',
+    email VARCHAR(128) COMMENT '邮箱',
+    phone VARCHAR(32) COMMENT '手机号',
+    avatar VARCHAR(255) COMMENT '头像URL',
+    status TINYINT DEFAULT 1 COMMENT '状态：0-禁用，1-启用',
+    dept_id BIGINT COMMENT '部门ID',
+    create_by VARCHAR(64) COMMENT '创建人',
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_by VARCHAR(64) COMMENT '更新人',
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted TINYINT DEFAULT 0 COMMENT '删除标记：0-未删除，1-已删除'
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_dept ON sys_user(dept_id);
+CREATE INDEX IF NOT EXISTS idx_user_status ON sys_user(status);
+
+-- 2. 部门表
+CREATE TABLE IF NOT EXISTS sys_dept (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    dept_name VARCHAR(100) NOT NULL COMMENT '部门名称',
+    dept_code VARCHAR(50) NOT NULL UNIQUE COMMENT '部门编码',
+    parent_id BIGINT DEFAULT 0 COMMENT '父部门ID，0表示顶级部门',
+    sort_order INT DEFAULT 0 COMMENT '排序',
+    leader_id BIGINT COMMENT '负责人ID',
+    status TINYINT DEFAULT 1 COMMENT '状态：0-禁用，1-启用',
+    create_by VARCHAR(64) COMMENT '创建人',
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_by VARCHAR(64) COMMENT '更新人',
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted TINYINT DEFAULT 0 COMMENT '删除标记'
+);
+
+CREATE INDEX IF NOT EXISTS idx_dept_parent ON sys_dept(parent_id);
+
+-- 3. 角色表
+CREATE TABLE IF NOT EXISTS sys_role (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    role_code VARCHAR(50) NOT NULL UNIQUE COMMENT '角色编码',
+    role_name VARCHAR(100) NOT NULL COMMENT '角色名称',
+    description VARCHAR(255) COMMENT '角色描述',
+    status TINYINT DEFAULT 1 COMMENT '状态：0-禁用，1-启用',
+    create_by VARCHAR(64) COMMENT '创建人',
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_by VARCHAR(64) COMMENT '更新人',
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted TINYINT DEFAULT 0 COMMENT '删除标记'
+);
+
+-- 4. 用户角色关联表
+CREATE TABLE IF NOT EXISTS sys_user_role (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    role_id BIGINT NOT NULL COMMENT '角色ID',
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_user_role ON sys_user_role(user_id, role_id);
+CREATE INDEX IF NOT EXISTS idx_ur_user ON sys_user_role(user_id);
+CREATE INDEX IF NOT EXISTS idx_ur_role ON sys_user_role(role_id);
+
 -- 1. 工作流定义表
 CREATE TABLE IF NOT EXISTS workflow_definition (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',

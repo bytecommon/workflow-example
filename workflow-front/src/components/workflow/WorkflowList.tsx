@@ -4,6 +4,7 @@ import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { Input } from '../ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { PageHeader } from '../layout/PageHeader'
 import { CreateWorkflowDialog } from './CreateWorkflowDialog'
 import { WorkflowConfigDialog } from './WorkflowConfigDialog'
 import { WorkflowEditDialog } from './WorkflowEditDialog'
@@ -294,16 +295,18 @@ export function WorkflowList({ currentUser }: WorkflowListProps) {
 
   return (
     <div className="space-y-6">
+      <PageHeader
+        title="流程定义管理"
+        description="管理和配置工作流定义"
+        actions={
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            新建流程
+          </Button>
+        }
+      />
+
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>流程定义管理</CardTitle>
-            <Button onClick={() => setShowCreateDialog(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              新建流程
-            </Button>
-          </div>
-        </CardHeader>
         <CardContent>
           {/* 批量操作区域 */}
           {selectedWorkflows.length > 0 && (

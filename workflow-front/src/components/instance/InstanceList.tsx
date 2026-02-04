@@ -4,11 +4,12 @@ import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { Input } from '../ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { PageHeader } from '../layout/PageHeader'
 import { InstanceDetailDialog } from './InstanceDetailDialog'
 import { WorkflowInstance, InstanceDetailVO, type Page } from '@/lib/api'
 import { formatDate, getStatusColor, getStatusText } from '@/lib/utils'
 import { apiService } from '@/lib/apiService'
-import { Search, Eye, Play, Square } from 'lucide-react'
+import { Search, Eye, Play, Square, RefreshCw } from 'lucide-react'
 import { ConfirmDialog } from '../ui/confirm-dialog'
 
 interface InstanceListProps {
@@ -138,15 +139,18 @@ export function InstanceList({ currentUser }: InstanceListProps) {
 
   return (
     <div className="space-y-6">
+      <PageHeader
+        title="流程实例查询"
+        description="查询和管理工作流实例"
+        actions={
+          <Button variant="outline" onClick={loadInstances} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            刷新
+          </Button>
+        }
+      />
+
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>流程实例查询</CardTitle>
-            <Button variant="outline" onClick={loadInstances} disabled={loading}>
-              刷新
-            </Button>
-          </div>
-        </CardHeader>
         <CardContent>
           {/* 筛选器 */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-6">

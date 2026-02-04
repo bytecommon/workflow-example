@@ -4,11 +4,12 @@ import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { Input } from '../ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
+import { PageHeader } from '../layout/PageHeader'
 import { TaskDetailDialog } from './TaskDetailDialog'
 import { WorkflowTask, type Page } from '@/lib/api'
 import { formatDate, getStatusColor, getStatusText } from '@/lib/utils'
 import { apiService } from '@/lib/apiService'
-import { Search, Clock, AlertCircle, CheckCircle } from 'lucide-react'
+import { Search, Clock, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react'
 
 interface TaskListProps {
   currentUser?: any
@@ -100,24 +101,24 @@ export function TaskList({ currentUser }: TaskListProps) {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>我的待办任务</CardTitle>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                  <Clock className="w-3 h-3 mr-1" />
-                  待处理: {pendingTasks.length}
-                </Badge>
-                <Badge variant="outline" className="bg-green-50 text-green-700">
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  已处理: {completedTasks.length}
-                </Badge>
-              </div>
-            </div>
+      <PageHeader
+        title="我的待办任务"
+        description="查看和处理您的工作流任务"
+        actions={
+          <div className="flex items-center space-x-2">
+            <Badge variant="outline" className="bg-orange-50 text-orange-700">
+              <Clock className="w-3 h-3 mr-1" />
+              待处理: {pendingTasks.length}
+            </Badge>
+            <Badge variant="outline" className="bg-green-50 text-green-700">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              已处理: {completedTasks.length}
+            </Badge>
           </div>
-        </CardHeader>
+        }
+      />
+
+      <Card>
         <CardContent>
           <div className="flex items-center space-x-4 mb-6">
             <div className="relative flex-1 max-w-md">

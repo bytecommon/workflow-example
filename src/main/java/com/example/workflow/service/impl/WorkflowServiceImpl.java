@@ -164,11 +164,16 @@ public class WorkflowServiceImpl implements WorkflowService {
                 .eq(WorkflowNode::getWorkflowId, workflowId)
         );
 
-        // 保存节点
+        // 保存节点并建立 nodeKey 到 nodeId 的映射
+        java.util.Map<String, Long> nodeKeyToIdMap = new java.util.HashMap<>();
         if (config.getNodes() != null && !config.getNodes().isEmpty()) {
             for (WorkflowNode node : config.getNodes()) {
                 node.setWorkflowId(workflowId);
                 workflowNodeMapper.insert(node);
+                // 建立映射关系
+                if (node.getNodeKey() != null) {
+                    nodeKeyToIdMap.put(node.getNodeKey(), node.getId());
+                }
             }
         }
 
@@ -181,6 +186,13 @@ public class WorkflowServiceImpl implements WorkflowService {
         if (config.getEdges() != null && !config.getEdges().isEmpty()) {
             for (WorkflowEdge edge : config.getEdges()) {
                 edge.setWorkflowId(workflowId);
+                // 如果提供了 sourceNodeKey 和 targetNodeKey，转换为 ID
+                if (edge.getSourceNodeKey() != null) {
+                    edge.setSourceNodeId(nodeKeyToIdMap.get(edge.getSourceNodeKey()));
+                }
+                if (edge.getTargetNodeKey() != null) {
+                    edge.setTargetNodeId(nodeKeyToIdMap.get(edge.getTargetNodeKey()));
+                }
                 workflowEdgeMapper.insert(edge);
             }
         }

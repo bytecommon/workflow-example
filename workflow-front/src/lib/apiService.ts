@@ -1,4 +1,4 @@
-import { workflowApi, templateApi, instanceApi, taskApi, ccApi, formApi, type Page, type WorkflowDefinition, type WorkflowTemplate, type WorkflowInstance, type WorkflowTask, type WorkflowCcVO } from './api'
+import { workflowApi, templateApi, instanceApi, taskApi, ccApi, formApi, userApi, type Page, type WorkflowDefinition, type WorkflowTemplate, type WorkflowInstance, type WorkflowTask, type WorkflowCcVO } from './api'
 import { mockApi } from './mock'
 
 // 1. 基础配置与辅助函数
@@ -321,11 +321,33 @@ export const templateService = {
 }
 
 export const userService = {
-  async getUsers() {
+  async getUsers(params?: { keyword?: string; dept?: string }) {
     if (useMock) return mockApi.getUsers()
     try {
-      return { code: 200, message: '成功', data: [] }
+      const response = await userApi.getUsers(params)
+      return { code: 200, message: '成功', data: response.data.data || [] }
     } catch (error) {
+      console.error('获取用户列表失败:', error)
+      return { code: 500, message: '获取失败', data: [] }
+    }
+  },
+  async getDepartments() {
+    if (useMock) return { code: 200, message: '成功', data: [] }
+    try {
+      const response = await userApi.getDepartments()
+      return { code: 200, message: '成功', data: response.data.data || [] }
+    } catch (error) {
+      console.error('获取部门列表失败:', error)
+      return { code: 500, message: '获取失败', data: [] }
+    }
+  },
+  async getRoles() {
+    if (useMock) return { code: 200, message: '成功', data: [] }
+    try {
+      const response = await userApi.getRoles()
+      return { code: 200, message: '成功', data: response.data.data || [] }
+    } catch (error) {
+      console.error('获取角色列表失败:', error)
       return { code: 500, message: '获取失败', data: [] }
     }
   },

@@ -5,7 +5,10 @@ import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Textarea } from '../ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { useToast } from '@/hooks/useToast'
+import { FlowDesigner } from './flow/FlowDesigner'
+import { Node, Edge } from '@xyflow/react'
 
 interface CreateTemplateDialogProps {
   open: boolean
@@ -16,6 +19,9 @@ interface CreateTemplateDialogProps {
 export function CreateTemplateDialog({ open, onOpenChange, onSubmit }: CreateTemplateDialogProps) {
   const toast = useToast()
   const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState('basic')
+  const [nodes, setNodes] = useState<Node[]>([])
+  const [edges, setEdges] = useState<Edge[]>([])
   const [formData, setFormData] = useState({
     templateKey: '',
     templateName: '',
@@ -30,17 +36,29 @@ export function CreateTemplateDialog({ open, onOpenChange, onSubmit }: CreateTem
 
     if (!formData.templateKey.trim()) {
       toast.error('模板关键字不能为空')
+      setActiveTab('basic')
       return
     }
 
     if (!formData.templateName.trim()) {
       toast.error('模板名称不能为空')
+      setActiveTab('basic')
+      return
+    }
+
+    if (nodes.length === 0) {
+      toast.error('请至少添加一个节点')
+      setActiveTab('design')
       return
     }
 
     setLoading(true)
     try {
-      await onSubmit(formData)
+      await onSubmit({
+        ...formData,
+        nodes,
+        edges
+      })
     } finally {
       setLoading(false)
     }
@@ -55,17 +73,27 @@ export function CreateTemplateDialog({ open, onOpenChange, onSubmit }: CreateTem
       icon: '',
       sortOrder: 0
     })
+    setNodes([])
+    setEdges([])
+    setActiveTab('basic')
     onOpenChange(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="pb-4 border-b">
           <DialogTitle>新建流程模板</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsTrigger value="basic">基本信息</TabsTrigger>
+            <TabsTrigger value="design">流程设计</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="basic" className="flex-1 overflow-y-auto">
+            <form onSubmit={(e) => { e.preventDefault(); setActiveTab('design'); }} className="space-y-6 p-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="templateKey">模板关键字 *</Label>
@@ -146,15 +174,39 @@ export function CreateTemplateDialog({ open, onOpenChange, onSubmit }: CreateTem
             </p>
           </div>
 
-          <DialogFooter>
+          <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={handleClose}>
               取消
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? '创建中...' : '创建'}
+            <Button type="submit">
+              下一步：流程设计
             </Button>
-          </DialogFooter>
+          </div>
         </form>
+      </TabsContent>
+
+          <TabsContent value="design" className="flex-1 overflow-hidden">
+            <div className="h-full p-4">
+              <FlowDesigner
+                initialNodes={nodes}
+                initialEdges={edges}
+                onChange={(newNodes, newEdges) => {
+                  setNodes(newNodes as any)
+                  setEdges(newEdges as any)
+                }}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        <DialogFooter className="pt-4 border-t gap-2">
+          <Button type="button" variant="outline" onClick={handleClose}>
+            取消
+          </Button>
+          <Button onClick={handleSubmit} disabled={loading}>
+            {loading ? '创建中...' : '创建模板'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

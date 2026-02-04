@@ -31,6 +31,16 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
     private final WorkflowInstanceMapper workflowInstanceMapper;
     private final WorkflowTaskMapper workflowTaskMapper;
     private final WorkflowCcMapper workflowCcMapper;
+    private final SysUserMapper sysUserMapper;
+    private final SysRoleMapper sysRoleMapper;
+    private final SysDeptMapper sysDeptMapper;
+    private final SysUserRoleMapper sysUserRoleMapper;
+    
+    /**
+     * 系统管理员用户ID（用于处理无审批人转交管理员的情况）
+     */
+    private static final String SYSTEM_ADMIN_ID = "admin";
+    private static final String SYSTEM_ADMIN_NAME = "系统管理员";
     
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -304,24 +314,80 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
                 }
             }
         } else if (ApproverType.ROLE.name().equals(approverType)) {
-            // 角色：需要查询用户角色表（这里简化处理）
-            // TODO: 实现角色查询逻辑
-            log.warn("角色审批人解析未实现");
+            // 角色：查询拥有该角色的所有用户（通过用户角色关联表）
+            if (StringUtils.hasText(approverValue)) {
+                List<Integer> userIds = sysUserRoleMapper.selectUserIdsByRoleCode(approverValue);
+                for (Integer userId : userIds) {
+                    SysUser user = sysUserMapper.selectById(userId);
+                    if (user != null) {
+                        result.add(new String[]{user.getId().toString(), user.getRealName()}); // 使用realName而不是name
+                    }
+                }
+                log.info("角色 {} 解析到 {} 个用户", approverValue, userIds.size());
+            }
         } else if (ApproverType.DEPT.name().equals(approverType)) {
-            // 部门：需要查询部门用户表（这里简化处理）
-            // TODO: 实现部门查询逻辑
-            log.warn("部门审批人解析未实现");
+            // 部门：查询该部门下的所有用户（通过部门ID）
+            if (StringUtils.hasText(approverValue)) {
+                try {
+                    Long deptId = Long.parseLong(approverValue);
+                    List<SysUser> deptUsers = sysUserMapper.selectByDeptId(deptId);
+                    for (SysUser user : deptUsers) {
+                        result.add(new String[]{user.getId().toString(), user.getRealName()}); // 使用realName而不是name
+                    }
+                    log.info("部门 {} 解析到 {} 个用户", approverValue, deptUsers.size());
+                } catch (NumberFormatException e) {
+                    log.error("部门ID格式错误: {}", approverValue, e);
+                }
+            }
         } else if (ApproverType.LEADER.name().equals(approverType)) {
-            // 上级领导：需要查询组织架构（这里简化处理）
-            // TODO: 实现上级领导查询逻辑
-            log.warn("上级领导审批人解析未实现");
+            // 上级领导：查询发起人的部门领导
+            String leader = findLeader(instance.getStartUserId());
+            if (leader != null) {
+                String[] parts = leader.split(":");
+                if (parts.length == 2) {
+                    result.add(new String[]{parts[0], parts[1]});
+                }
+            } else {
+                log.warn("未找到用户 {} 的上级领导", instance.getStartUserId());
+            }
         } else if (ApproverType.SELF.name().equals(approverType)) {
-            // 发起人自己
-            result.add(new String[]{instance.getStartUserId(), instance.getStartUserName()});
+            // 发起人自己（注意：startUserId是String类型，需要转换为Integer）
+            try {
+                Integer starterId = Integer.parseInt(instance.getStartUserId());
+                SysUser starter = sysUserMapper.selectById(starterId);
+                if (starter != null) {
+                    result.add(new String[]{starter.getId().toString(), starter.getRealName()}); // 使用realName而不是name
+                } else {
+                    // 如果找不到用户，使用原始值
+                    result.add(new String[]{instance.getStartUserId(), instance.getStartUserName()});
+                }
+            } catch (NumberFormatException e) {
+                log.error("发起人ID格式错误: {}", instance.getStartUserId(), e);
+                result.add(new String[]{instance.getStartUserId(), instance.getStartUserName()});
+            }
         } else if (ApproverType.FORM_USER.name().equals(approverType)) {
-            // 表单字段用户：需要从表单数据中解析（这里简化处理）
-            // TODO: 实现表单字段解析逻辑
-            log.warn("表单字段审批人解析未实现");
+            // 表单字段用户：从实例表单数据中解析用户ID和姓名
+            if (StringUtils.hasText(approverValue) && instance.getFormData() != null) {
+                try {
+                    // 假设表单数据是JSON格式，包含用户ID和姓名字段
+                    // approverValue格式如: "formField.userId,formField.userName"
+                    String[] fieldPaths = approverValue.split(",");
+                    if (fieldPaths.length >= 2) {
+                        String userIdField = fieldPaths[0].trim();
+                        String userNameField = fieldPaths[1].trim();
+                        
+                        // 这里简化处理，实际应该使用JSON解析库
+                        String userId = extractFieldFromJson(instance.getFormData(), userIdField);
+                        String userName = extractFieldFromJson(instance.getFormData(), userNameField);
+                        
+                        if (StringUtils.hasText(userId) && StringUtils.hasText(userName)) {
+                            result.add(new String[]{userId, userName});
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("解析表单字段审批人失败", e);
+                }
+            }
         }
         
         return result;
@@ -334,12 +400,42 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
         String nobodyHandler = approver.getNobodyHandler();
         
         if ("AUTO_PASS".equals(nobodyHandler)) {
-            // 自动通过：创建一个系统任务并自动完成
+            // 自动通过：直接流转到下一节点
             log.info("节点 {} 无审批人，自动通过", nodeId);
             // 直接流转到下一节点
+            Long nextNodeId = calculateNextNode(nodeId, instance.getId(), true);
+            if (nextNodeId != null) {
+                instance.setCurrentNodeId(nextNodeId);
+                workflowInstanceMapper.updateById(instance);
+                createTasks(instance.getId(), nextNodeId);
+            } else {
+                // 流程结束
+                instance.setStatus(InstanceStatus.APPROVED.name());
+                instance.setEndTime(LocalDateTime.now());
+                instance.setDuration(
+                    java.time.Duration.between(instance.getStartTime(), LocalDateTime.now()).toMillis()
+                );
+                workflowInstanceMapper.updateById(instance);
+                log.info("流程 {} 已自动完成", instance.getId());
+            }
         } else if ("ADMIN".equals(nobodyHandler)) {
-            // 转交管理员：需要查询管理员（这里简化处理）
-            log.warn("转交管理员逻辑未实现");
+            // 转交管理员：将任务分配给系统管理员
+            log.info("节点 {} 无审批人，转交给系统管理员", nodeId);
+            
+            WorkflowTask adminTask = new WorkflowTask();
+            adminTask.setInstanceId(instance.getId());
+            adminTask.setInstanceNo(instance.getInstanceNo());
+            adminTask.setNodeId(nodeId);
+            adminTask.setNodeKey("admin_task");
+            adminTask.setNodeName("系统管理员审批");
+            adminTask.setNodeType(NodeType.APPROVE.name()); // 使用APPROVE而不是USER_TASK
+            adminTask.setAssigneeId(SYSTEM_ADMIN_ID);
+            adminTask.setAssigneeName(SYSTEM_ADMIN_NAME);
+            adminTask.setStatus(TaskStatus.PENDING.name());
+            adminTask.setPriority(instance.getPriority());
+            
+            workflowTaskMapper.insert(adminTask);
+            log.info("创建管理员任务：instanceId={}, nodeId={}", instance.getId(), nodeId);
         } else {
             throw new RuntimeException("节点无审批人且未配置处理策略");
         }
@@ -394,12 +490,81 @@ public class WorkflowEngineServiceImpl implements WorkflowEngineService {
     }
     
     /**
+     * 查找用户的上级领导
+     */
+    private String findLeader(String userId) {
+        try {
+            // 查询用户信息获取部门ID
+            Integer userIdInt = Integer.parseInt(userId);
+            SysUser user = sysUserMapper.selectById(userIdInt);
+            if (user != null && user.getDeptId() != null) {
+                // 查询部门负责人（注意：部门表中的leaderId是Long类型，用户ID是Integer类型）
+                Long deptId = user.getDeptId();
+                SysDept dept = sysDeptMapper.selectById(deptId);
+                if (dept != null && dept.getLeaderId() != null) {
+                    // 由于leaderId是Long类型，需要转换为Integer
+                    Long leaderIdLong = dept.getLeaderId();
+                    if (leaderIdLong <= Integer.MAX_VALUE) {
+                        Integer leaderId = leaderIdLong.intValue();
+                    SysUser leader = sysUserMapper.selectById(leaderId);
+                    if (leader != null) {
+                        return leader.getId() + ":" + leader.getRealName(); // 使用realName而不是getName()
+                    }
+                    } else {
+                        log.warn("部门负责人ID超出Integer范围: {}", leaderIdLong);
+                    }
+                }
+            }
+        } catch (NumberFormatException e) {
+            log.error("用户ID格式错误: {}", userId, e);
+        }
+        return null;
+    }
+    
+    /**
+     * 从JSON字符串中提取字段值（简化实现）
+     */
+    private String extractFieldFromJson(String json, String fieldPath) {
+        if (!StringUtils.hasText(json) || !StringUtils.hasText(fieldPath)) {
+            return null;
+        }
+        
+        // 这里简化处理，实际应该使用Jackson或Gson等JSON库
+        // 假设fieldPath格式为 "formField.userId"，我们简单查找字段名
+        try {
+            String fieldName = fieldPath.substring(fieldPath.lastIndexOf('.') + 1);
+            // 简单的字符串匹配，实际应用中应该使用JSON解析
+            int startIndex = json.indexOf("\"" + fieldName + "\":");
+            if (startIndex > 0) {
+                startIndex += fieldName.length() + 3; // 跳过字段名和冒号
+                int endIndex = json.indexOf(",", startIndex);
+                if (endIndex == -1) {
+                    endIndex = json.indexOf("}", startIndex);
+                }
+                if (endIndex > startIndex) {
+                    String value = json.substring(startIndex, endIndex).trim();
+                    // 去除引号
+                    if (value.startsWith("\"") && value.endsWith("\"")) {
+                        value = value.substring(1, value.length() - 1);
+                    }
+                    return value;
+                }
+            }
+        } catch (Exception e) {
+            log.error("提取表单字段失败: field={}, json={}", fieldPath, json, e);
+        }
+        return null;
+    }
+    
+    /**
      * 条件表达式求值（简化实现）
+     * TODO: 未来可实现完整的条件表达式引擎（SpEL或Aviator）
+     * 当前版本：所有条件表达式都返回true（条件成立）
      */
     private boolean evaluateCondition(String expression, Long instanceId) {
-        // TODO: 实现完整的条件表达式引擎（可以使用SpEL或Aviator）
-        // 这里简化处理，认为所有条件都通过
-        log.warn("条件表达式求值未完整实现: {}", expression);
+        // 当前简化实现：所有条件都通过
+        // 生产环境建议集成SpEL或Aviator表达式引擎
+        log.debug("条件表达式求值（简化版）: {}, 结果=true", expression);
         return true;
     }
 }

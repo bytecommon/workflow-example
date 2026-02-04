@@ -330,6 +330,8 @@ export const workflowApi = {
   // 保存工作流配置
   saveConfig: (id: number, config: {
     // 配置参数根据实际需要定义
+    nodes?: any[]
+    edges?: any[]
     formSchema?: any
     approvalRules?: any[]
   }) =>
@@ -433,6 +435,51 @@ export const ccApi = {
   // 标记为已读
   markAsRead: (id: number) => 
     api.post<ApiResponse<void>>(`/workflow/cc/${id}/read`),
+}
+
+// 用户相关API
+// 注意：UserController路径已从 /workflow/users 改为 /sys/users
+export const userApi = {
+  // 获取用户列表
+  getUsers: (params?: {
+    keyword?: string
+    dept?: string
+  }) =>
+    api.get<ApiResponse<User[]>>('/sys/users', { params }),
+
+  // 获取部门列表
+  getDepartments: () =>
+    api.get<ApiResponse<Department[]>>('/sys/users/departments'),
+
+  // 获取角色列表
+  getRoles: () =>
+    api.get<ApiResponse<Role[]>>('/sys/users/roles'),
+}
+
+// 用户类型
+export interface User {
+  id: number
+  username: string
+  realName: string
+  type: string
+  email: string
+  deptName: string
+  roleName: string
+}
+
+// 部门类型
+export interface Department {
+  id: number
+  name: string
+  userCount: number
+}
+
+// 角色类型
+export interface Role {
+  id: number
+  code: string
+  name: string
+  description: string
 }
 
 // 分页响应类型定义

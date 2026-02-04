@@ -39,6 +39,18 @@ public class WorkflowEdge {
     private Long targetNodeId;
 
     /**
+     * 源节点Key（用于前端传递，后端会自动转换为ID）
+     */
+    @TableField(exist = false)
+    private String sourceNodeKey;
+
+    /**
+     * 目标节点Key（用于前端传递，后端会自动转换为ID）
+     */
+    @TableField(exist = false)
+    private String targetNodeKey;
+
+    /**
      * 条件表达式
      * 节点流转的条件，使用SPEL表达式或简单条件
      * 例如：${amount > 1000}、APPROVED

@@ -142,7 +142,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
       }
     } catch (error) {
       console.error('获取流程列表失败:', error)
-      showError('获取流程列表失败')
+      toast.error('获取流程列表失败')
     } finally {
       setLoading(false)
     }
@@ -211,7 +211,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
       }
     } catch (error) {
       console.error('获取表单详情失败:', error)
-      showError(error instanceof Error ? error.message : '请检查网络连接')
+      toast.error(error instanceof Error ? error.message : '请检查网络连接')
     } finally {
       setLoadingForm(false)
     }
@@ -315,7 +315,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
     // 验证流程标题
     if (!title || title.trim() === '') {
       setTitleError('请输入流程标题')
-      showError('请输入流程标题')
+      toast.error('请输入流程标题')
       return
     } else {
       setTitleError('')
@@ -324,7 +324,7 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
     // 验证表单
     if (!validateForm()) {
       const firstError = Object.values(formErrors)[0]
-      showError(firstError || '请填写所有必填项')
+      toast.error(firstError || '请填写所有必填项')
       return
     }
 
@@ -341,15 +341,15 @@ export function StartWorkflowDialog({ open, onOpenChange, onSubmit, currentUser 
 
       const response = await instanceService.startInstance(submitData)
       if (response.code === 200) {
-      showSuccess('流程实例已成功发起')
+        toast.success('流程实例已成功发起')
         onSubmit(response.data)
         onOpenChange(false)
       } else {
-        showError(response.message)
+        toast.error(response.message)
       }
     } catch (error) {
       console.error('启动流程失败:', error)
-      showError('请检查网络连接或表单数据')
+      toast.error('请检查网络连接或表单数据')
     } finally {
       setSubmitting(false)
     }
